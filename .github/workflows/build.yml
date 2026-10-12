@@ -38,8 +38,19 @@ jobs:
             # Host-only: mesa_clc / panfrost_compile compile PanVK's OpenCL kernels at build time.
             sudo apt-get install -y llvm-18-dev libclang-18-dev libclang-cpp18-dev clang-18 \
               libclc-18-dev libclc-18 libllvmspirvlib-18-dev llvm-spirv-18 spirv-tools \
-              libspirv-cross-c-shared-dev libdrm-dev libpolly-18-dev
+              libdrm-dev libpolly-18-dev
             sudo ln -sf /usr/bin/llvm-config-18 /usr/local/bin/llvm-config
+            # Mesa's CL compiler needs SPIRV-Tools with KhronosGroup/SPIRV-Tools#5534 (2024);
+            # Ubuntu 24.04's is older, so build a current one.
+            git clone -q --depth 1 -b vulkan-sdk-1.4.321.0 https://github.com/KhronosGroup/SPIRV-Headers /tmp/spirv-headers
+            git clone -q --depth 1 -b vulkan-sdk-1.4.321.0 https://github.com/KhronosGroup/SPIRV-Tools /tmp/spirv-tools
+            cmake -S /tmp/spirv-tools -B /tmp/spirv-tools/build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_INSTALL_PREFIX=/usr/local -DSPIRV-Headers_SOURCE_DIR=/tmp/spirv-headers \
+              -DSPIRV_SKIP_TESTS=ON -DSPIRV_WERROR=OFF -DSPIRV_TOOLS_BUILD_STATIC=ON
+            sudo cmake --build /tmp/spirv-tools/build --target install
+            sudo cmake -S /tmp/spirv-headers -B /tmp/spirv-headers/build -DCMAKE_INSTALL_PREFIX=/usr/local
+            sudo cmake --build /tmp/spirv-headers/build --target install
+            pkg-config --modversion SPIRV-Tools
           fi
           pip3 install --break-system-packages 'meson>=1.5' mako pyyaml packaging ply pycparser
           meson --version && aarch64-linux-gnu-gcc --version | head -1

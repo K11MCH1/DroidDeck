@@ -134,6 +134,29 @@ fetch_src(){
 	git -C "$mesa" checkout -q FETCH_HEAD
 	SRC_COMMIT="$(git -C "$mesa" rev-parse HEAD)"
 	log "source $SRC_REPO @ $SRC_COMMIT ($(git -C "$mesa" log -1 --format=%cs))"
+	restore_desktop_dirs
+}
+
+# Android-only forks drop the parts of Mesa that only desktop Linux uses (the window-system
+# loader, X11 helpers). Put back any that are missing, from upstream Mesa at MESA_OVERLAY_REF.
+restore_desktop_dirs(){
+	local missing=() d
+	for d in src/loader src/x11; do
+		[ -d "$mesa/$d" ] || missing+=("$d")
+	done
+	[ ${#missing[@]} = 0 ] && return 0
+	local ref="${MESA_OVERLAY_REF:-main}" up="$workdir/mesa-upstream"
+	log "restoring ${missing[*]} from upstream Mesa $ref"
+	rm -rf "$up" && git init -q "$up"
+	git -C "$up" remote add origin https://gitlab.freedesktop.org/mesa/mesa.git
+	git -C "$up" fetch -q --depth=1 origin "$ref" || die "could not fetch upstream Mesa $ref"
+	git -C "$up" checkout -q FETCH_HEAD
+	for d in "${missing[@]}"; do
+		[ -d "$up/$d" ] || die "upstream Mesa has no $d"
+		cp -r "$up/$d" "$mesa/$d"
+	done
+	OVERLAY_COMMIT="$(git -C "$up" rev-parse HEAD)"
+	log "restored from upstream Mesa $OVERLAY_COMMIT"
 }
 
 # PanVK compiles OpenCL kernels at build time: mesa_clc, vtn_bindgen2 and panfrost_compile must
@@ -253,6 +276,7 @@ EOJ
   "minGlibc": "$glibc_min",
   "source": "https://github.com/$SRC_REPO",
   "sourceCommit": "$SRC_COMMIT",
+  "upstreamOverlay": "${OVERLAY_COMMIT:-none}",
   "description": "glibc build for DroidDeck's Linux runtime. Not for Winlator or Bannerlator: use the original Android release there."
 }
 EOJ
