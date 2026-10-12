@@ -87,7 +87,7 @@ jobs:
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release edit "$tag" --notes-file out/NOTES.md --title "$title"
           else
-            gh release create "$tag" --prerelease --title "$title" --notes-file out/NOTES.md --target "$GITHUB_SHA"
+            gh release create "$tag" --prerelease --title "$title" --notes-file out/NOTES.md
           fi
           gh release upload "$tag" out/*.zip --clobber
           gh release view "$tag" --json assets --jq '.assets[] | "\(.name) \(.size)"'
