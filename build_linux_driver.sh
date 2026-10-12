@@ -146,6 +146,12 @@ PY
 	fi
 	log "source $SRC_REPO @ $SRC_COMMIT ($(git -C "$mesa" log -1 --format=%cs))"
 	restore_desktop_dirs
+	# RADV Xclipse defines its log macro only for Android; compat/android/log.h covers glibc.
+	local xlog="$mesa/src/amd/common/ac_xclipse_log.h"
+	if [ -f "$xlog" ] && grep -q '^#ifdef __ANDROID__$' "$xlog"; then
+		sed -i 's/^#ifdef __ANDROID__$/#if 1 \/* glibc build: compat\/android\/log.h *\//' "$xlog"
+		log "enabled AC_XCLIPSE_LOGP for the glibc build"
+	fi
 }
 
 # Android-only forks drop the parts of Mesa that only desktop Linux uses (the window-system
