@@ -52,6 +52,9 @@ jobs:
         if: inputs.kind == 'patchset'
         run: |
           set -eu
+          # The project's Android build copies X11 headers (runtime-dlopen'd) from the host.
+          sudo apt-get install -y libxcb1-dev libx11-dev libx11-xcb-dev libxshmfence-dev \
+            libxcb-randr0-dev libxcb-dri3-dev libxcb-present-dev libxcb-shm0-dev libxcb-sync-dev libxcb-xfixes0-dev
           a="$RUNNER_TEMP/android-src"
           rm -rf "$a" && git clone -q "https://github.com/${{ inputs.src_repo }}.git" "$a"
           git -C "$a" checkout -q "${{ inputs.src_ref }}"
