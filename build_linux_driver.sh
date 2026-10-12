@@ -235,6 +235,13 @@ build_panvk_host_tools(){
 	ls -l "$hosttools/bin"
 }
 
+# DroidDeck-side fixes every PanVK build needs, whatever the fork.
+apply_panvk_fixes(){
+	[ "$DRIVER" = panvk ] || return 0
+	python3 "$repo/patches/panvk_kbase_drm_node.py" "$mesa" || die "panvk_kbase_drm_node.py failed"
+	grep -q BL_DRM_STANDIN "$mesa/src/panfrost/vulkan/panvk_physical_device.c" || die "DRM-node fix did not land"
+}
+
 build(){
 	cd "$mesa"
 	local cross="$workdir/cross.ini" native="$workdir/native.ini"
@@ -352,6 +359,7 @@ mkdir -p "$workdir"
 build_sysroot
 build_host_scanner
 fetch_src
+apply_panvk_fixes
 if [ "$DRIVER" = panvk ]; then build_panvk_host_tools; fi
 build
 package
