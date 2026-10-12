@@ -1,10 +1,28 @@
 # DroidDeck drivers for Mali and Samsung Xclipse
 
 Open-source Mesa Vulkan drivers for phones without a Snapdragon (Adreno) GPU, packaged for
-[DroidDeck](https://github.com/Droid-Deck/DroidDeck). Experimental and not yet device-tested.
+[DroidDeck](https://github.com/Droid-Deck/DroidDeck). Experimental and not yet device-tested. Nine driver releases plus a DroidDeck test build.
 
 Downloads: the **[Releases page](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases)** (one release per driver,
 updated in place on every rebuild).
+
+## DroidDeck test build
+
+To use these drivers, testers need the DroidDeck test build, which picks the right driver automatically:
+**[DroidDeck test build: non-Snapdragon](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases/tag/droiddeck-test-non-adreno-all)**
+(branch [`test/non-adreno-all`](https://github.com/Droid-Deck/DroidDeck/tree/test/non-adreno-all); not an official DroidDeck release).
+
+| Phone | Driver DroidDeck picks automatically | Other choices in the driver settings |
+|---|---|---|
+| Snapdragon (Adreno) | Turnip, unchanged | the usual Turnip versions |
+| Pixel 10 / 11 (PowerVR) | the phone's own driver | none |
+| Samsung Exynos (Xclipse) | the phone's own driver | RADV Xclipse, Mali bridge |
+| Mali v9 to v13 on Android 15+ (G57 to G925) | PanVK-kbase (zenithblue) | the per-chip PanVK pair, the faux123 pair on its handheld, Mali bridge |
+| Mali on Android 14 or older | the per-chip PanVK pair | Mali bridge |
+| Mali-G52 / G76 | FristOneRR PanVK | Mali bridge |
+| Any other Mali | Mali bridge (turned on automatically) | none |
+
+Report results with DroidDeck's session logs (Setup > Share logs) in the DroidDeck Discord testing thread, and say which driver was in use.
 
 ## The drivers we rebuild
 
