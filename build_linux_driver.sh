@@ -133,6 +133,17 @@ fetch_src(){
 	git -C "$mesa" fetch -q --depth=1 origin "$SRC_REF" || die "could not fetch $SRC_REPO $SRC_REF"
 	git -C "$mesa" checkout -q FETCH_HEAD
 	SRC_COMMIT="$(git -C "$mesa" rev-parse HEAD)"
+	# Some forks link Android's liblog into everything; there is no liblog on desktop Linux.
+	if grep -q "^  '-llog',$" "$mesa/meson.build"; then
+		python3 - "$mesa/meson.build" <<'PY'
+import sys
+p = sys.argv[1]; s = open(p).read()
+old = "add_project_link_arguments(\n  '-llog',\n  language : ['c', 'cpp'],\n)\n"
+assert old in s, "unexpected -llog block"
+open(p, "w").write(s.replace(old, "", 1))
+PY
+		log "removed the fork's unconditional -llog"
+	fi
 	log "source $SRC_REPO @ $SRC_COMMIT ($(git -C "$mesa" log -1 --format=%cs))"
 	restore_desktop_dirs
 }
@@ -144,7 +155,9 @@ restore_desktop_dirs(){
 	for d in src/loader src/x11; do
 		[ -d "$mesa/$d" ] || missing+=("$d")
 	done
-	[ ${#missing[@]} = 0 ] && return 0
+	local need_uapi=0
+	[ -f "$mesa/include/drm-uapi/nouveau_drm.h" ] || need_uapi=1
+	[ ${#missing[@]} = 0 ] && [ $need_uapi = 0 ] && return 0
 	local ref="${MESA_OVERLAY_REF:-main}" up="$workdir/mesa-upstream"
 	log "restoring ${missing[*]} from upstream Mesa $ref"
 	rm -rf "$up" && git init -q "$up"
@@ -155,6 +168,14 @@ restore_desktop_dirs(){
 		[ -d "$up/$d" ] || die "upstream Mesa has no $d"
 		cp -r "$up/$d" "$mesa/$d"
 	done
+	if [ $need_uapi = 1 ]; then
+		local h n=0
+		for h in "$up"/include/drm-uapi/*.h; do
+			[ -e "$mesa/include/drm-uapi/$(basename "$h")" ] && continue
+			cp "$h" "$mesa/include/drm-uapi/" && n=$((n + 1))
+		done
+		log "restored $n missing include/drm-uapi headers"
+	fi
 	OVERLAY_COMMIT="$(git -C "$up" rev-parse HEAD)"
 	log "restored from upstream Mesa $OVERLAY_COMMIT"
 }
@@ -236,6 +257,7 @@ EOC
 		-Dgallium-drivers= -Dplatforms=wayland,x11 -Dopengl=false \
 		-Dgbm=disabled -Dglx=disabled -Degl=disabled -Dvulkan-layers= -Dtools= \
 		-Dxmlconfig=disabled -Dperfetto=false -Dlmsensors=disabled \
+		-Dc_args="-I$repo/compat" -Dcpp_args="-I$repo/compat" \
 		"${extra[@]}" \
 		|| { echo "== meson log =="; tail -120 build-linux/meson-logs/meson-log.txt 2>/dev/null; die "meson setup failed"; }
 	local target
