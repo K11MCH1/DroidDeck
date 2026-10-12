@@ -158,6 +158,7 @@ restore_desktop_dirs(){
 	[ -d "$mesa/include/pci_ids" ] || missing+=(include/pci_ids)
 	local need_uapi=0
 	[ -f "$mesa/include/drm-uapi/nouveau_drm.h" ] || need_uapi=1
+	[ -f "$mesa/include/vulkan/vulkan_wayland.h" ] || need_uapi=1
 	[ ${#missing[@]} = 0 ] && [ $need_uapi = 0 ] && return 0
 	local ref="${MESA_OVERLAY_REF:-main}" up="$workdir/mesa-upstream"
 	log "restoring ${missing[*]} from upstream Mesa $ref"
@@ -169,13 +170,12 @@ restore_desktop_dirs(){
 		[ -d "$up/$d" ] || die "upstream Mesa has no $d"
 		cp -r "$up/$d" "$mesa/$d"
 	done
-	if [ $need_uapi = 1 ]; then
-		local h n=0
-		for h in "$up"/include/drm-uapi/*.h; do
-			[ -e "$mesa/include/drm-uapi/$(basename "$h")" ] && continue
-			cp "$h" "$mesa/include/drm-uapi/" && n=$((n + 1))
-		done
-		log "restored $n missing include/drm-uapi headers"
+	if [ $need_uapi = 1 ] || [ ! -f "$mesa/include/vulkan/vulkan_wayland.h" ]; then
+		local before after
+		before="$(cd "$mesa/include" && git ls-files --others --cached . | wc -l)"
+		cp -rn "$up/include/." "$mesa/include/"
+		after="$(cd "$mesa/include" && ls -R . | grep -c '\.h$')"
+		log "added the fork's missing include/ headers from upstream (fork's own kept)"
 	fi
 	OVERLAY_COMMIT="$(git -C "$up" rev-parse HEAD)"
 	log "restored from upstream Mesa $OVERLAY_COMMIT"
@@ -196,7 +196,7 @@ build_panvk_host_tools(){
 	# Only the three build tools are needed from this machine's build, not the driver itself.
 	local t target
 	for t in mesa_clc vtn_bindgen2 panfrost_compile; do
-		target="$(ninja -C build-host -t targets all | grep -oE "^src/[^:]*/$t" | head -1)"
+		target="$(ninja -C build-host -t targets all | grep -oE "^src/[^: ]*/$t:" | grep -v '\.p/' | sed 's/:$//' | head -1)"
 		[ -n "$target" ] || die "host tools: no target for $t"
 		ninja -C build-host "$target" || die "host tools: $t failed to build"
 		install -Dm755 "build-host/$target" "$hosttools/bin/$t"
@@ -266,7 +266,7 @@ EOC
 		"${extra[@]}" \
 		|| { echo "== meson log =="; tail -120 build-linux/meson-logs/meson-log.txt 2>/dev/null; die "meson setup failed"; }
 	local target
-	target="$(ninja -C build-linux -t targets all | grep -oE "^src/[^:]*/$lib" | head -1)"
+	target="$(ninja -C build-linux -t targets all | grep -oE "^src/[^: ]*/$lib:" | grep -v '\.p/' | sed 's/:$//' | head -1)"
 	[ -n "$target" ] || die "no ninja target for $lib"
 	log "building $target"
 	ninja -C build-linux "$target" || die "build failed"
