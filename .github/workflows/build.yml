@@ -1,15 +1,12 @@
 name: build
 on:
   workflow_dispatch:
-    inputs:
-      radv_ref:
-        description: radv-xclipse commit/branch/tag
-        default: main
-      panvk_ref:
-        description: FristOneRR-Panvk-Source commit/branch/tag
-        default: master
   push:
     branches: [main]
+permissions:
+  contents: write
+env:
+  RELEASE_TAG: nonadreno-test
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -18,14 +15,26 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - driver: radv
+          - id: RADV-Xclipse
+            driver: radv
             src_repo: JimVulkan/radv-xclipse
-            default_ref: main
-            name: RADV-Xclipse
-          - driver: panvk
+            src_ref: main
+          - id: PanVK-Mali-JM
+            driver: panvk
             src_repo: FristOneRR-Admin/FristOneRR-Panvk-Source
-            default_ref: master
-            name: PanVK-Mali-kbase
+            src_ref: master
+          - id: PanVK-Mali-G720
+            driver: panvk
+            src_repo: wonderkast02/panvk-g720-kbase-csf
+            src_ref: g720-development
+            kmds: kbase
+          - id: PanVK-Mali-G615
+            driver: panvk
+            src_repo: GunaCharanTeja/panvk-kbase-android
+            src_ref: main
+            kind: patchset
+            profile: g615-v11-csf
+            kmds: kbase
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
@@ -40,17 +49,6 @@ jobs:
               libclc-18-dev libclc-18 libllvmspirvlib-18-dev llvm-spirv-18 spirv-tools \
               libdrm-dev libpolly-18-dev
             sudo ln -sf /usr/bin/llvm-config-18 /usr/local/bin/llvm-config
-            # Mesa's CL compiler needs SPIRV-Tools with KhronosGroup/SPIRV-Tools#5534 (2024);
-            # Ubuntu 24.04's is older, so build a current one.
-            git clone -q --depth 1 -b vulkan-sdk-1.4.321.0 https://github.com/KhronosGroup/SPIRV-Headers /tmp/spirv-headers
-            git clone -q --depth 1 -b vulkan-sdk-1.4.321.0 https://github.com/KhronosGroup/SPIRV-Tools /tmp/spirv-tools
-            cmake -S /tmp/spirv-tools -B /tmp/spirv-tools/build -G Ninja -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_INSTALL_PREFIX=/usr/local -DSPIRV-Headers_SOURCE_DIR=/tmp/spirv-headers \
-              -DSPIRV_SKIP_TESTS=ON -DSPIRV_WERROR=OFF -DSPIRV_TOOLS_BUILD_STATIC=ON
-            sudo cmake --build /tmp/spirv-tools/build --target install
-            sudo cmake -S /tmp/spirv-headers -B /tmp/spirv-headers/build -DCMAKE_INSTALL_PREFIX=/usr/local
-            sudo cmake --build /tmp/spirv-headers/build --target install
-            pkg-config --modversion SPIRV-Tools
           fi
           pip3 install --break-system-packages 'meson>=1.5' mako pyyaml packaging ply pycparser
           meson --version && aarch64-linux-gnu-gcc --version | head -1
@@ -58,19 +56,56 @@ jobs:
         env:
           DRIVER: ${{ matrix.driver }}
           SRC_REPO: ${{ matrix.src_repo }}
-          SRC_REF: ${{ (matrix.driver == 'radv' && inputs.radv_ref) || (matrix.driver == 'panvk' && inputs.panvk_ref) || matrix.default_ref }}
-          ZIP_NAME: ${{ matrix.name }}-Linux.zip
-          META_NAME: ${{ matrix.name }} (Linux, glibc)
+          SRC_REF: ${{ matrix.src_ref }}
+          SRC_KIND: ${{ matrix.kind || 'git' }}
+          PROFILE: ${{ matrix.profile }}
+          PANFROST_KMDS: ${{ matrix.kmds || 'kbase,panfrost' }}
+          ZIP_NAME: ${{ matrix.id }}-Linux.zip
+          META_NAME: ${{ matrix.id }} (Linux, glibc)
         run: ./build_linux_driver.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.name }}-Linux
-          path: linux_workdir/${{ matrix.name }}-Linux.zip
+          name: ${{ matrix.id }}-Linux
+          path: linux_workdir/${{ matrix.id }}-Linux.zip
       - name: Upload logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.name }}-failed-logs
+          name: ${{ matrix.id }}-failed-logs
           path: |
             linux_workdir/src/build-linux/meson-logs/meson-log.txt
             linux_workdir/src/build-host/meson-logs/meson-log.txt
+
+  # One release for everything: each run adds whatever finished and rewrites the notes.
+  release:
+    needs: build
+    if: always()
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: '*-Linux'
+          path: linux
+          merge-multiple: true
+      - name: Build pairs and notes
+        run: |
+          mkdir -p linux out
+          ls -l linux
+          gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name' > existing.txt 2>/dev/null || : > existing.txt
+          python3 make_release.py linux out existing.txt
+          ls -l out
+      - name: Publish
+        run: |
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" --prerelease --title "DroidDeck Mali / Xclipse drivers (test)" \
+              --notes-file out/NOTES.md --target "$GITHUB_SHA"
+          else
+            gh release edit "$RELEASE_TAG" --notes-file out/NOTES.md
+          fi
+          shopt -s nullglob
+          files=(out/*.zip)
+          if [ ${#files[@]} -gt 0 ]; then gh release upload "$RELEASE_TAG" "${files[@]}" --clobber; fi
+          gh release view "$RELEASE_TAG" --json assets --jq '.assets[] | "\(.name) \(.size)"'

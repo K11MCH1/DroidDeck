@@ -127,6 +127,7 @@ build_host_scanner(){
 }
 
 fetch_src(){
+	if [ "${SRC_KIND:-git}" = patchset ]; then fetch_patchset; return; fi
 	rm -rf "$mesa"
 	git init -q "$mesa"
 	git -C "$mesa" remote add origin "https://github.com/$SRC_REPO.git"
@@ -146,12 +147,35 @@ PY
 	fi
 	log "source $SRC_REPO @ $SRC_COMMIT ($(git -C "$mesa" log -1 --format=%cs))"
 	restore_desktop_dirs
-	# RADV Xclipse defines its log macro only for Android; compat/android/log.h covers glibc.
-	local xlog="$mesa/src/amd/common/ac_xclipse_log.h"
-	if [ -f "$xlog" ] && grep -q '^#ifdef __ANDROID__$' "$xlog"; then
-		sed -i 's/^#ifdef __ANDROID__$/#if 1 \/* glibc build: compat\/android\/log.h *\//' "$xlog"
-		log "enabled AC_XCLIPSE_LOGP for the glibc build"
+	# RADV Xclipse: its own __ANDROID__ blocks under src/amd only hold logging, debug properties and
+	# CPU timing, which compat/ provides on glibc. Its non-Android branches were never built, so keep
+	# the tested (Android) side. Mesa's DETECT_OS_ANDROID (gralloc, AHB) is left alone.
+	if [ "$DRIVER" = radv ]; then
+		local n
+		n="$(grep -rlE '#if(def)? *(defined\()?__ANDROID__' "$mesa/src/amd" | wc -l)"
+		grep -rlE '#if(def)? *(defined\()?__ANDROID__' "$mesa/src/amd" | xargs -r sed -i -E \
+			-e 's/^#ifdef __ANDROID__/#if 1 \/* glibc build: compat\/ *\//' \
+			-e 's/^#if defined\(__ANDROID__\)/#if 1/'
+		log "kept the Android-side diagnostics in $n src/amd files (compat/ on glibc)"
 	fi
+}
+
+# A patch-series project (e.g. GunaCharanTeja/panvk-kbase-android): it pins upstream Mesa in
+# sources.lock and applies its series for one GPU profile with its own scripts.
+fetch_patchset(){
+	[ -n "$PROFILE" ] || die "PROFILE is required for SRC_KIND=patchset"
+	local prep="$workdir/prep"
+	rm -rf "$prep" "$mesa"
+	git init -q "$prep"
+	git -C "$prep" remote add origin "https://github.com/$SRC_REPO.git"
+	git -C "$prep" fetch -q --depth=1 origin "$SRC_REF" || die "could not fetch $SRC_REPO $SRC_REF"
+	git -C "$prep" checkout -q FETCH_HEAD
+	SRC_COMMIT="$(git -C "$prep" rev-parse HEAD)"
+	(cd "$prep" && ./scripts/fetch-mesa.sh "$prep/work") || die "fetch-mesa.sh failed"
+	(cd "$prep" && ./scripts/apply-patches.sh --profile "$PROFILE" --mesa "$prep/work/mesa") || die "apply-patches.sh failed for $PROFILE"
+	mv "$prep/work/mesa" "$mesa"
+	SRC_COMMIT="$SRC_COMMIT (profile $PROFILE, Mesa $(git -C "$mesa" rev-parse --short HEAD))"
+	log "source $SRC_REPO @ $SRC_COMMIT"
 }
 
 # Android-only forks drop the parts of Mesa that only desktop Linux uses (the window-system
@@ -259,7 +283,7 @@ EOC
 			sed -i "/^\[binaries\]/a $t = '$hosttools/bin/$t'" "$native"
 		done
 		export PATH="$hosttools/bin:$PATH"
-		extra=(-Dvulkan-drivers=panfrost -Dpanfrost-kmds=kbase,panfrost -Dllvm=disabled
+		extra=(-Dvulkan-drivers=panfrost -Dpanfrost-kmds=${PANFROST_KMDS:-kbase,panfrost} -Dllvm=disabled
 		       -Dmesa-clc=system -Dprecomp-compiler=system)
 	fi
 	rm -rf build-linux

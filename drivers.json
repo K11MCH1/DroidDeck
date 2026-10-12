@@ -1,0 +1,70 @@
+[
+  {
+    "id": "RADV-Xclipse",
+    "title": "RADV Xclipse",
+    "gpus": "Samsung Xclipse 920 / 530 / 940. Chips: Exynos 2200, Exynos 1480, Exynos 2400 (940 is experimental). Phones: Galaxy S22 / S22+ / S22 Ultra (Exynos models), Galaxy A55, Galaxy S24 / S24+ (Exynos models). Not the Snapdragon versions of these phones, and not Exynos 1580 (Xclipse 540).",
+    "author": "JimVulkan",
+    "source": "https://github.com/JimVulkan/radv-xclipse",
+    "android": {
+      "repo": "JimVulkan/radv-xclipse",
+      "asset": "radv-xclipse-.*\\.zip$"
+    },
+    "build": {
+      "driver": "radv",
+      "src_repo": "JimVulkan/radv-xclipse",
+      "src_ref": "main"
+    }
+  },
+  {
+    "id": "PanVK-Mali-JM",
+    "title": "FristOneRR PanVK (older Mali)",
+    "gpus": "Older Mali (Job Manager): G52, G57, G68, G76, G77, G78. Chips: Helio G85 / G88 / G95 / G99 / G100, Dimensity 700 / 810 / 6020 / 6080 / 6100+ / 1080 / 1200 / 1300 / 8050, Kompanio 1300T, Unisoc T820, Exynos 1280 / 1380. Phones the author lists as working: Poco M6 Pro 4G, Galaxy A15 / A15 5G / A17 4G, Realme 10 4G, Infinix Note 30 5G / Note 50 Pro, Tecno Camon 20 Pro 5G, Redmi Note 12 Pro 5G, Redmi Note 10S, Galaxy Tab S9 FE+.",
+    "author": "FristOneRR (credits: Noysz, mexicanbr0auth, LukeValen, BossDrk)",
+    "source": "https://github.com/FristOneRR-Admin/FristOneRR-Panvk-Source",
+    "android": {
+      "repo": "FristOneRR/FristOneRR-Panvk-Driver",
+      "asset": "Panvk-Mali-G57-.*\\.zip$"
+    },
+    "build": {
+      "driver": "panvk",
+      "src_repo": "FristOneRR-Admin/FristOneRR-Panvk-Source",
+      "src_ref": "master"
+    },
+    "note": "The Linux half is built from the newest public source (beta 1.2.0); the Android half is the newer official 2.0-rc1 release."
+  },
+  {
+    "id": "PanVK-Mali-G720",
+    "title": "PanVK G720 (wonderkast02)",
+    "gpus": "Mali-G720 (CSF). Chips: Dimensity 9300 / 9300+, Dimensity 8400. Phones/tablets: Vivo X100 / X100 Pro, Oppo Find X7, Galaxy Tab S10+ / S10 Ultra, Poco X7 Pro, Redmi Turbo 4.",
+    "author": "wonderkast02",
+    "source": "https://github.com/wonderkast02/panvk-g720-kbase-csf",
+    "android": {
+      "repo": "wonderkast02/panvk-g720-kbase-csf",
+      "asset": "PanVK-G720-.*[0-9]\\.zip$"
+    },
+    "build": {
+      "driver": "panvk",
+      "src_repo": "wonderkast02/panvk-g720-kbase-csf",
+      "src_ref": "g720-development",
+      "kmds": "kbase"
+    },
+    "note": "The Linux half is built from the g720-development branch; the Android half is the official 0.1.0-beta.2 release."
+  },
+  {
+    "id": "PanVK-Mali-G615",
+    "title": "PanVK kbase Android (G615)",
+    "gpus": "Mali-G615 (CSF). Chips: Dimensity 7300 (the author's test phone is an Oppo CPH2763), Dimensity 8300. Phones: Poco X6 Pro, Redmi K70E and other Dimensity 7300 / 8300 phones.",
+    "author": "GunaCharanTeja (fork of zenithblue-oss/panvk-kbase-android)",
+    "source": "https://github.com/GunaCharanTeja/panvk-kbase-android",
+    "android": null,
+    "build": {
+      "driver": "panvk",
+      "src_repo": "GunaCharanTeja/panvk-kbase-android",
+      "src_ref": "main",
+      "kind": "patchset",
+      "profile": "g615-v11-csf",
+      "kmds": "kbase"
+    },
+    "note": "No official Android release exists yet; the Android half will be built here."
+  }
+]
