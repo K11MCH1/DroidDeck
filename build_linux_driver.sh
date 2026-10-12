@@ -152,11 +152,12 @@ PY
 	# the tested (Android) side. Mesa's DETECT_OS_ANDROID (gralloc, AHB) is left alone.
 	if [ "$DRIVER" = radv ]; then
 		local n
-		n="$(grep -rlE '#if(def)? *(defined\()?__ANDROID__' "$mesa/src/amd" | wc -l)"
-		grep -rlE '#if(def)? *(defined\()?__ANDROID__' "$mesa/src/amd" | xargs -r sed -i -E \
+		local dirs=("$mesa/src/amd" "$mesa"/src/util/u_xclipse_prof.*)
+		n="$(grep -rlE '#if(def)? *(defined\()?__ANDROID__' "${dirs[@]}" | wc -l)"
+		grep -rlE '#if(def)? *(defined\()?__ANDROID__' "${dirs[@]}" | xargs -r sed -i -E \
 			-e 's/^#ifdef __ANDROID__/#if 1 \/* glibc build: compat\/ *\//' \
 			-e 's/^#if defined\(__ANDROID__\)/#if 1/'
-		log "kept the Android-side diagnostics in $n src/amd files (compat/ on glibc)"
+		log "kept the Android-side diagnostics in $n src/amd + profiler files (compat/ on glibc)"
 	fi
 }
 
