@@ -11,6 +11,7 @@ on:
       kind: {type: string, default: git}
       profile: {type: string, default: ''}
       kmds: {type: string, default: 'kbase,panfrost'}
+      build_android: {type: boolean, default: true}
 permissions:
   contents: write
 jobs:
@@ -49,7 +50,7 @@ jobs:
       # Patch-series projects publish no Android build, so build the Android half here with the
       # project's own script, from the same pin + patches and the host tools built above.
       - name: Build the Android half
-        if: inputs.kind == 'patchset'
+        if: inputs.kind == 'patchset' && inputs.build_android
         run: |
           set -eu
           # The project's Android build copies X11 headers (runtime-dlopen'd) from the host.

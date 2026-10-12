@@ -1,0 +1,24 @@
+name: PanVK-Mali-kbase
+on:
+  workflow_dispatch:
+    inputs:
+      src_ref:
+        description: Source branch, tag or commit to build
+        default: panvk-kbase-v0.1.0-rc3
+  push:
+    branches: [main]
+    paths: ['.github/workflows/panvk-mali-kbase.yml']
+permissions:
+  contents: write
+jobs:
+  driver:
+    uses: ./.github/workflows/_driver.yml
+    with:
+      id: PanVK-Mali-kbase
+      driver: panvk
+      src_repo: zenithblue-oss/panvk-kbase-android
+      src_ref: ${{ inputs.src_ref || 'panvk-kbase-v0.1.0-rc3' }}
+      kind: patchset
+      profile: 'g615-v11-csf'
+      kmds: 'kbase'
+      build_android: false

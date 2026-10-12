@@ -17,6 +17,28 @@
     "tag": "radv-xclipse"
   },
   {
+    "id": "PanVK-Mali-kbase",
+    "tag": "panvk-mali-kbase",
+    "title": "PanVK-kbase (zenithblue, all newer Mali: v9 to v13)",
+    "gpus": "One driver for Mali v9 to v13 on Arm's kbase driver: G57 / G68 / G77 / G78 (v9), G610 / G710 (v10), G615 / G715 (v11), G720 (v12), G925 / G725 (v13). Author-tested (PanProbe 38/38): Lenovo Tab TB336FU (G57), Poco X6 Pro (G615), Galaxy Tab S10 Ultra (G720), Motorola Edge 40 Neo (G610), Pixel 7 / 7a (G710), Pixel 8 / 9 (G715); Galaxy Tab S11 Ultra (G925) passed on the previous beta. Chips include Helio G99, Dimensity 7300 / 8300 / 9000 / 9300 / 9400, Tensor G2 / G3 / G4. Android 15 or newer (the author's Android build needs API 35).",
+    "author": "zenithblue-oss",
+    "source": "https://github.com/zenithblue-oss/panvk-kbase-android",
+    "android": {
+      "repo": "zenithblue-oss/panvk-kbase-android",
+      "asset": "PanVK-Kbase-Android-.*\\.adpkg\\.zip$"
+    },
+    "build": {
+      "driver": "panvk",
+      "src_repo": "zenithblue-oss/panvk-kbase-android",
+      "src_ref": "panvk-kbase-v0.1.0-rc3",
+      "kind": "patchset",
+      "profile": "g615-v11-csf",
+      "kmds": "kbase",
+      "build_android": false
+    },
+    "note": "The Android half is the author's official RC3 build (device-tested). The Linux half is built here from the same RC3 tag; the author's own Linux build needs libSPIRV-Tools.so and was not device-tested, so it is not used."
+  },
+  {
     "id": "PanVK-Mali-JM",
     "title": "FristOneRR PanVK (older Mali)",
     "gpus": "Older Mali (Job Manager): G52, G57, G68, G76, G77, G78. Chips: Helio G85 / G88 / G95 / G99 / G100, Dimensity 700 / 810 / 6020 / 6080 / 6100+ / 1080 / 1200 / 1300 / 8050, Kompanio 1300T, Unisoc T820, Exynos 1280 / 1380. Phones the author lists as working: Poco M6 Pro 4G, Galaxy A15 / A15 5G / A17 4G, Realme 10 4G, Infinix Note 30 5G / Note 50 Pro, Tecno Camon 20 Pro 5G, Redmi Note 12 Pro 5G, Redmi Note 10S, Galaxy Tab S9 FE+.",
