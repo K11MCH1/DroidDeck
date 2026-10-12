@@ -164,7 +164,8 @@ restore_desktop_dirs(){
 build_panvk_host_tools(){
 	cd "$mesa"
 	rm -rf build-host
-	meson setup build-host --prefix "$hosttools" --libdir lib --buildtype release \
+	# clang: Mesa's SPIRV-Tools probe passes clang-only warning flags, which gcc rejects.
+	CC=clang-18 CXX=clang++-18 meson setup build-host --prefix "$hosttools" --libdir lib --buildtype release \
 		-Dvulkan-drivers=panfrost -Dgallium-drivers= -Dplatforms= -Dopengl=false \
 		-Dgbm=disabled -Dglx=disabled -Degl=disabled -Dvulkan-layers= -Dtools= -Dxmlconfig=disabled \
 		-Dllvm=enabled -Dmesa-clc=enabled -Dinstall-mesa-clc=true \
@@ -209,6 +210,8 @@ pkg-config = '/usr/bin/pkg-config'
 cmake = '/usr/bin/cmake'
 wayland-scanner = '$hosttools/bin/wayland-scanner'
 glslangValidator = '$(command -v glslangValidator)'
+[built-in options]
+pkg_config_path = '$hosttools/lib/pkgconfig'
 EOC
 	local extra=()
 	if [ "$DRIVER" = radv ]; then
@@ -218,11 +221,11 @@ EOC
 		       -Dallow-fallback-for=libdrm --force-fallback-for=libdrm
 		       -Dlibdrm:default_library=static)
 	else
-		cat >> "$native" <<EOC
-mesa_clc = '$hosttools/bin/mesa_clc'
-vtn_bindgen2 = '$hosttools/bin/vtn_bindgen2'
-panfrost_compile = '$hosttools/bin/panfrost_compile'
-EOC
+		# The host tools belong in [binaries], before the [built-in options] section.
+		local t
+		for t in panfrost_compile vtn_bindgen2 mesa_clc; do
+			sed -i "/^\[binaries\]/a $t = '$hosttools/bin/$t'" "$native"
+		done
 		export PATH="$hosttools/bin:$PATH"
 		extra=(-Dvulkan-drivers=panfrost -Dpanfrost-kmds=kbase,panfrost -Dllvm=disabled
 		       -Dmesa-clc=system -Dprecomp-compiler=system)
