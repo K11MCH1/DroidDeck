@@ -2,7 +2,7 @@
   {
     "id": "RADV-Xclipse",
     "title": "RADV Xclipse",
-    "gpus": "Samsung Xclipse 920 / 530 / 940. Chips: Exynos 2200, Exynos 1480, Exynos 2400 (940 is experimental). Phones: Galaxy S22 / S22+ / S22 Ultra (Exynos models), Galaxy A55, Galaxy S24 / S24+ (Exynos models). Not the Snapdragon versions of these phones, and not Exynos 1580 (Xclipse 540).",
+    "gpus": "Samsung Xclipse 920 / 530 / 940. Chips: Exynos 2200, Exynos 1480, Exynos 2400 / 2400e (940 is experimental). Phones: Galaxy S22 / S22+ / S22 Ultra (Exynos models), Galaxy A55, Galaxy S24 / S24+ (Exynos models), Galaxy S24 FE. Not the Snapdragon versions of these phones, and not Exynos 1580 (Xclipse 540).",
     "author": "JimVulkan",
     "source": "https://github.com/JimVulkan/radv-xclipse",
     "android": {
