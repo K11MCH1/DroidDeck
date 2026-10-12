@@ -46,8 +46,40 @@ jobs:
           ZIP_NAME: ${{ inputs.id }}-Linux.zip
           META_NAME: ${{ inputs.id }} (Linux, glibc)
         run: ./build_linux_driver.sh
+      # Patch-series projects publish no Android build, so build the Android half here with the
+      # project's own script, from the same pin + patches and the host tools built above.
+      - name: Build the Android half
+        if: inputs.kind == 'patchset'
+        run: |
+          set -eu
+          a="$RUNNER_TEMP/android-src"
+          rm -rf "$a" && git clone -q "https://github.com/${{ inputs.src_repo }}.git" "$a"
+          git -C "$a" checkout -q "${{ inputs.src_ref }}"
+          (cd "$a" && ./scripts/fetch-mesa.sh "$a/work" && ./scripts/apply-patches.sh --profile "${{ inputs.profile }}" --mesa "$a/work/mesa")
+          echo "NDK: $ANDROID_NDK_ROOT"
+          HOST_TOOLS="$PWD/linux_workdir/host/bin" MESA="$a/work/mesa" BDIR="$a/build/android" DDIR="$a/dist" \
+            "$a/scripts/build-android.sh" --profile "${{ inputs.profile }}" --ndk "$ANDROID_NDK_ROOT" \
+            || { tail -n 60 "$a/build/android.log" 2>/dev/null; exit 1; }
+          so="$a/dist/libvulkan_panfrost.so"
+          "$ANDROID_NDK_ROOT"/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip "$so"
+          "$ANDROID_NDK_ROOT"/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf -d "$so" | grep NEEDED
+          mkdir -p android_half && cp "$so" android_half/
+          cat > android_half/meta.json <<EOJ
+          {
+            "schemaVersion": 1,
+            "name": "${{ inputs.id }} (Android)",
+            "description": "PanVK on Arm kbase, profile ${{ inputs.profile }}, built from ${{ inputs.src_repo }}",
+            "author": "${{ inputs.src_repo }}",
+            "packageVersion": "$(git -C "$a" rev-parse --short HEAD)",
+            "vendor": "Mesa",
+            "driverVersion": "Mesa $(cat "$a/work/mesa/VERSION")",
+            "minApi": 29,
+            "libraryName": "libvulkan_panfrost.so"
+          }
+          EOJ
+          (cd android_half && zip -9 "../${{ inputs.id }}-Android-built.zip" libvulkan_panfrost.so meta.json)
       - name: Package the pair and notes
-        run: python3 make_release.py "${{ inputs.id }}" "linux_workdir/${{ inputs.id }}-Linux.zip" out "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+        run: python3 make_release.py "${{ inputs.id }}" "linux_workdir/${{ inputs.id }}-Linux.zip" out "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" "${{ inputs.id }}-Android-built.zip"
       - name: Update this driver's release
         run: |
           tag="$(echo '${{ inputs.id }}' | tr '[:upper:]' '[:lower:]')"
