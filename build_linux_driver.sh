@@ -273,6 +273,8 @@ EOC
 	if [ "$DRIVER" = radv ]; then
 		# The fork patches libdrm (subprojects/packagefiles) for Samsung's sgpu kernel driver, so its
 		# own static libdrm is used, exactly as its Android build does, never the sysroot's.
+		# Some files call the Android log/property functions without including their headers.
+		compat_inc="-include $repo/compat/android/log.h -include $repo/compat/sys/system_properties.h"
 		extra=(-Dvulkan-drivers=amd -Dllvm=disabled
 		       -Dallow-fallback-for=libdrm --force-fallback-for=libdrm
 		       -Dlibdrm:default_library=static)
@@ -292,7 +294,7 @@ EOC
 		-Dgallium-drivers= -Dplatforms=wayland,x11 -Dopengl=false \
 		-Dgbm=disabled -Dglx=disabled -Degl=disabled -Dvulkan-layers= -Dtools= \
 		-Dxmlconfig=disabled -Dperfetto=false -Dlmsensors=disabled \
-		-Dc_args="-I$repo/compat" -Dcpp_args="-I$repo/compat" \
+		-Dc_args="-I$repo/compat ${compat_inc:-}" -Dcpp_args="-I$repo/compat ${compat_inc:-}" \
 		"${extra[@]}" \
 		|| { echo "== meson log =="; tail -120 build-linux/meson-logs/meson-log.txt 2>/dev/null; die "meson setup failed"; }
 	local target

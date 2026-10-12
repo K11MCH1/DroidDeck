@@ -1,0 +1,23 @@
+name: PanVK-Mali-G710
+on:
+  workflow_dispatch:
+    inputs:
+      src_ref:
+        description: Source branch, tag or commit to build
+        default: main
+  push:
+    branches: [main]
+    paths: ['.github/workflows/panvk-mali-g710.yml']
+permissions:
+  contents: write
+jobs:
+  driver:
+    uses: ./.github/workflows/_driver.yml
+    with:
+      id: PanVK-Mali-G710
+      driver: panvk
+      src_repo: GunaCharanTeja/panvk-kbase-android
+      src_ref: ${{ inputs.src_ref || 'main' }}
+      kind: patchset
+      profile: 'g610-v10-csf'
+      kmds: 'kbase'

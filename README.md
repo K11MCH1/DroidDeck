@@ -3,17 +3,18 @@
 Open-source Mesa Vulkan drivers for phones without a Snapdragon (Adreno) GPU, packaged for
 [DroidDeck](https://github.com/Droid-Deck/DroidDeck). Experimental and not yet device-tested.
 
-Downloads: the **[test release](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases/tag/nonadreno-test)**,
-updated as each driver builds.
+Downloads: the **[Releases page](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases)** (one release per driver,
+updated in place on every rebuild).
 
 ## The drivers we rebuild
 
-| Driver | GPUs, chips and devices | Source | Author |
-|---|---|---|---|
-| **RADV Xclipse** | Samsung Xclipse 920 / 530 / 940. Chips: Exynos 2200, Exynos 1480, Exynos 2400 (940 is experimental). Phones: Galaxy S22 / S22+ / S22 Ultra (Exynos models), Galaxy A55, Galaxy S24 / S24+ (Exynos models). Not the Snapdragon versions of these phones, and not Exynos 1580 (Xclipse 540). | [source](https://github.com/JimVulkan/radv-xclipse) · [Android releases](https://github.com/JimVulkan/radv-xclipse/releases) | JimVulkan |
-| **FristOneRR PanVK (older Mali)** | Older Mali (Job Manager): G52, G57, G68, G76, G77, G78. Chips: Helio G85 / G88 / G95 / G99 / G100, Dimensity 700 / 810 / 6020 / 6080 / 6100+ / 1080 / 1200 / 1300 / 8050, Kompanio 1300T, Unisoc T820, Exynos 1280 / 1380. Phones the author lists as working: Poco M6 Pro 4G, Galaxy A15 / A15 5G / A17 4G, Realme 10 4G, Infinix Note 30 5G / Note 50 Pro, Tecno Camon 20 Pro 5G, Redmi Note 12 Pro 5G, Redmi Note 10S, Galaxy Tab S9 FE+. | [source](https://github.com/FristOneRR-Admin/FristOneRR-Panvk-Source) · [Android releases](https://github.com/FristOneRR/FristOneRR-Panvk-Driver/releases) | FristOneRR (credits: Noysz, mexicanbr0auth, LukeValen, BossDrk) |
-| **PanVK G720 (wonderkast02)** | Mali-G720 (CSF). Chips: Dimensity 9300 / 9300+, Dimensity 8400. Phones/tablets: Vivo X100 / X100 Pro, Oppo Find X7, Galaxy Tab S10+ / S10 Ultra, Poco X7 Pro, Redmi Turbo 4. | [source](https://github.com/wonderkast02/panvk-g720-kbase-csf) · [Android releases](https://github.com/wonderkast02/panvk-g720-kbase-csf/releases) | wonderkast02 |
-| **PanVK kbase Android (G615)** | Mali-G615 (CSF). Chips: Dimensity 7300 (the author's test phone is an Oppo CPH2763), Dimensity 8300. Phones: Poco X6 Pro, Redmi K70E and other Dimensity 7300 / 8300 phones. | [source](https://github.com/GunaCharanTeja/panvk-kbase-android) | GunaCharanTeja (fork of zenithblue-oss/panvk-kbase-android) |
+| Driver | GPUs, chips and devices | Source | Our release / build | Author |
+|---|---|---|---|---|
+| **RADV Xclipse** | Samsung Xclipse 920 / 530 / 940. Chips: Exynos 2200, Exynos 1480, Exynos 2400 (940 is experimental). Phones: Galaxy S22 / S22+ / S22 Ultra (Exynos models), Galaxy A55, Galaxy S24 / S24+ (Exynos models). Not the Snapdragon versions of these phones, and not Exynos 1580 (Xclipse 540). | [source](https://github.com/JimVulkan/radv-xclipse) · [Android releases](https://github.com/JimVulkan/radv-xclipse/releases) | [release](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases/tag/radv-xclipse) · [build](https://github.com/The412Banner/droiddeck-nonadreno-drivers/actions/workflows/radv-xclipse.yml) | JimVulkan |
+| **FristOneRR PanVK (older Mali)** | Older Mali (Job Manager): G52, G57, G68, G76, G77, G78. Chips: Helio G85 / G88 / G95 / G99 / G100, Dimensity 700 / 810 / 6020 / 6080 / 6100+ / 1080 / 1200 / 1300 / 8050, Kompanio 1300T, Unisoc T820, Exynos 1280 / 1380. Phones the author lists as working: Poco M6 Pro 4G, Galaxy A15 / A15 5G / A17 4G, Realme 10 4G, Infinix Note 30 5G / Note 50 Pro, Tecno Camon 20 Pro 5G, Redmi Note 12 Pro 5G, Redmi Note 10S, Galaxy Tab S9 FE+. | [source](https://github.com/FristOneRR-Admin/FristOneRR-Panvk-Source) · [Android releases](https://github.com/FristOneRR/FristOneRR-Panvk-Driver/releases) | [release](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases/tag/panvk-mali-jm) · [build](https://github.com/The412Banner/droiddeck-nonadreno-drivers/actions/workflows/panvk-mali-jm.yml) | FristOneRR (credits: Noysz, mexicanbr0auth, LukeValen, BossDrk) |
+| **PanVK G720 (wonderkast02)** | Mali-G720 (CSF). Chips: Dimensity 9300 / 9300+, Dimensity 8400. Phones/tablets: Vivo X100 / X100 Pro, Oppo Find X7, Galaxy Tab S10+ / S10 Ultra, Poco X7 Pro, Redmi Turbo 4. | [source](https://github.com/wonderkast02/panvk-g720-kbase-csf) · [Android releases](https://github.com/wonderkast02/panvk-g720-kbase-csf/releases) | [release](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases/tag/panvk-mali-g720) · [build](https://github.com/The412Banner/droiddeck-nonadreno-drivers/actions/workflows/panvk-mali-g720.yml) | wonderkast02 |
+| **PanVK kbase Android (G615)** | Mali-G615 (CSF). Chips: Dimensity 7300 (the author's test phone is an Oppo CPH2763), Dimensity 8300. Phones: Poco X6 Pro, Redmi K70E and other Dimensity 7300 / 8300 phones. | [source](https://github.com/GunaCharanTeja/panvk-kbase-android) | [release](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases/tag/panvk-mali-g615) · [build](https://github.com/The412Banner/droiddeck-nonadreno-drivers/actions/workflows/panvk-mali-g615.yml) | GunaCharanTeja (fork of zenithblue-oss/panvk-kbase-android) |
+| **PanVK kbase Android (G610 / G710, experimental)** | Mali-G610 / G710 (CSF, arch v10). Chips: Google Tensor G2 and Dimensity 9000 / 9000+ (Mali-G710), Dimensity 7200 / 8000 / 8100 / 8200 (Mali-G610). Devices: Pixel 7 / 7 Pro / 7a, Pixel Fold, Pixel Tablet, OnePlus Nord 3, Nothing Phone (2a), Redmi Note 13 Pro+. | [source](https://github.com/GunaCharanTeja/panvk-kbase-android) | [release](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases/tag/panvk-mali-g710) · [build](https://github.com/The412Banner/droiddeck-nonadreno-drivers/actions/workflows/panvk-mali-g710.yml) | GunaCharanTeja (fork of zenithblue-oss/panvk-kbase-android) |
 
 ## What this repo does
 
@@ -26,7 +27,7 @@ Each driver comes as a pair, like DroidDeck's Adreno drivers:
 `build_linux_driver.sh` cross-compiles each source against an Arch Linux ARM sysroot. Where an
 Android-only fork removed desktop pieces (window-system loader, X11 helpers, some headers), they
 are restored from upstream Mesa, and small stand-ins in `compat/` replace Android's logging and
-property calls. `make_release.py` builds the pairs and the release notes from `drivers.json`.
+property calls. Each driver has its own workflow (`.github/workflows/<driver>.yml`, all using `_driver.yml`) and its own release, which is replaced in place on every rebuild. `make_release.py` builds the pair and the release notes from `drivers.json`. To rebuild one driver from a different source commit, run its workflow with `src_ref`.
 
 ## Credits
 

@@ -13,7 +13,8 @@
       "driver": "radv",
       "src_repo": "JimVulkan/radv-xclipse",
       "src_ref": "main"
-    }
+    },
+    "tag": "radv-xclipse"
   },
   {
     "id": "PanVK-Mali-JM",
@@ -30,7 +31,8 @@
       "src_repo": "FristOneRR-Admin/FristOneRR-Panvk-Source",
       "src_ref": "master"
     },
-    "note": "The Linux half is built from the newest public source (beta 1.2.0); the Android half is the newer official 2.0-rc1 release."
+    "note": "The Linux half is built from the newest public source (beta 1.2.0); the Android half is the newer official 2.0-rc1 release.",
+    "tag": "panvk-mali-jm"
   },
   {
     "id": "PanVK-Mali-G720",
@@ -48,7 +50,8 @@
       "src_ref": "g720-development",
       "kmds": "kbase"
     },
-    "note": "The Linux half is built from the g720-development branch; the Android half is the official 0.1.0-beta.2 release."
+    "note": "The Linux half is built from the g720-development branch; the Android half is the official 0.1.0-beta.2 release.",
+    "tag": "panvk-mali-g720"
   },
   {
     "id": "PanVK-Mali-G615",
@@ -65,6 +68,25 @@
       "profile": "g615-v11-csf",
       "kmds": "kbase"
     },
-    "note": "No official Android release exists yet; the Android half will be built here."
+    "note": "No official Android release exists yet; the Android half will be built here.",
+    "tag": "panvk-mali-g615"
+  },
+  {
+    "id": "PanVK-Mali-G710",
+    "tag": "panvk-mali-g710",
+    "title": "PanVK kbase Android (G610 / G710, experimental)",
+    "gpus": "Mali-G610 / G710 (CSF, arch v10). Chips: Google Tensor G2 and Dimensity 9000 / 9000+ (Mali-G710), Dimensity 7200 / 8000 / 8100 / 8200 (Mali-G610). Devices: Pixel 7 / 7 Pro / 7a, Pixel Fold, Pixel Tablet, OnePlus Nord 3, Nothing Phone (2a), Redmi Note 13 Pro+.",
+    "author": "GunaCharanTeja (fork of zenithblue-oss/panvk-kbase-android)",
+    "source": "https://github.com/GunaCharanTeja/panvk-kbase-android",
+    "android": null,
+    "build": {
+      "driver": "panvk",
+      "src_repo": "GunaCharanTeja/panvk-kbase-android",
+      "src_ref": "main",
+      "kind": "patchset",
+      "profile": "g610-v10-csf",
+      "kmds": "kbase"
+    },
+    "note": "Built from the project's g610-v10-csf profile, which its author marks as planned and not yet validated. The G710 is the same GPU generation. No official Android release exists; the Android half will be built here."
   }
 ]

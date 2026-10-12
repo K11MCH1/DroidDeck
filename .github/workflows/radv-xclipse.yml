@@ -1,0 +1,23 @@
+name: RADV-Xclipse
+on:
+  workflow_dispatch:
+    inputs:
+      src_ref:
+        description: Source branch, tag or commit to build
+        default: main
+  push:
+    branches: [main]
+    paths: ['.github/workflows/radv-xclipse.yml']
+permissions:
+  contents: write
+jobs:
+  driver:
+    uses: ./.github/workflows/_driver.yml
+    with:
+      id: RADV-Xclipse
+      driver: radv
+      src_repo: JimVulkan/radv-xclipse
+      src_ref: ${{ inputs.src_ref || 'main' }}
+      kind: git
+      profile: ''
+      kmds: 'kbase,panfrost'

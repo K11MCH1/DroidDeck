@@ -1,0 +1,70 @@
+# Shared recipe: build one driver's Linux half, package its pair, and replace that driver's own
+# release in place. Each driver has a small workflow that calls this one.
+name: driver
+on:
+  workflow_call:
+    inputs:
+      id: {type: string, required: true}
+      driver: {type: string, required: true}
+      src_repo: {type: string, required: true}
+      src_ref: {type: string, required: true}
+      kind: {type: string, default: git}
+      profile: {type: string, default: ''}
+      kmds: {type: string, default: 'kbase,panfrost'}
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build unzip flex bison cmake glslang-tools curl pkg-config \
+            gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu \
+            python3-pip zip patch tar zstd xz-utils libexpat1-dev zlib1g-dev
+          if [ "${{ inputs.driver }}" = panvk ]; then
+            # Host-only: mesa_clc / panfrost_compile compile PanVK's OpenCL kernels at build time.
+            sudo apt-get install -y llvm-18-dev libclang-18-dev libclang-cpp18-dev clang-18 \
+              libclc-18-dev libclc-18 libllvmspirvlib-18-dev llvm-spirv-18 spirv-tools \
+              libdrm-dev libpolly-18-dev
+            sudo ln -sf /usr/bin/llvm-config-18 /usr/local/bin/llvm-config
+          fi
+          pip3 install --break-system-packages 'meson>=1.5' mako pyyaml packaging ply pycparser
+      - name: Build the Linux half
+        env:
+          DRIVER: ${{ inputs.driver }}
+          SRC_REPO: ${{ inputs.src_repo }}
+          SRC_REF: ${{ inputs.src_ref }}
+          SRC_KIND: ${{ inputs.kind }}
+          PROFILE: ${{ inputs.profile }}
+          PANFROST_KMDS: ${{ inputs.kmds }}
+          ZIP_NAME: ${{ inputs.id }}-Linux.zip
+          META_NAME: ${{ inputs.id }} (Linux, glibc)
+        run: ./build_linux_driver.sh
+      - name: Package the pair and notes
+        run: python3 make_release.py "${{ inputs.id }}" "linux_workdir/${{ inputs.id }}-Linux.zip" out "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+      - name: Update this driver's release
+        run: |
+          tag="$(echo '${{ inputs.id }}' | tr '[:upper:]' '[:lower:]')"
+          title="${{ inputs.id }} for DroidDeck (test)"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release edit "$tag" --notes-file out/NOTES.md --title "$title"
+          else
+            gh release create "$tag" --prerelease --title "$title" --notes-file out/NOTES.md --target "$GITHUB_SHA"
+          fi
+          gh release upload "$tag" out/*.zip --clobber
+          gh release view "$tag" --json assets --jq '.assets[] | "\(.name) \(.size)"'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ inputs.id }}
+          path: |
+            out/
+            linux_workdir/src/build-linux/meson-logs/meson-log.txt
+            linux_workdir/src/build-host/meson-logs/meson-log.txt
+          if-no-files-found: ignore
