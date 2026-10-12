@@ -1,0 +1,65 @@
+name: build
+on:
+  workflow_dispatch:
+    inputs:
+      radv_ref:
+        description: radv-xclipse commit/branch/tag
+        default: main
+      panvk_ref:
+        description: FristOneRR-Panvk-Source commit/branch/tag
+        default: master
+  push:
+    branches: [main]
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - driver: radv
+            src_repo: JimVulkan/radv-xclipse
+            default_ref: main
+            name: RADV-Xclipse
+          - driver: panvk
+            src_repo: FristOneRR-Admin/FristOneRR-Panvk-Source
+            default_ref: master
+            name: PanVK-Mali-kbase
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build unzip flex bison cmake glslang-tools curl pkg-config \
+            gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu \
+            python3-pip zip patch tar zstd xz-utils libexpat1-dev zlib1g-dev
+          if [ "${{ matrix.driver }}" = panvk ]; then
+            # Host-only: mesa_clc / panfrost_compile compile PanVK's OpenCL kernels at build time.
+            sudo apt-get install -y llvm-18-dev libclang-18-dev libclang-cpp18-dev clang-18 \
+              libclc-18-dev libclc-18 libllvmspirvlib-18-dev llvm-spirv-18 spirv-tools \
+              libspirv-cross-c-shared-dev libdrm-dev libpolly-18-dev
+            sudo ln -sf /usr/bin/llvm-config-18 /usr/local/bin/llvm-config
+          fi
+          pip3 install --break-system-packages 'meson>=1.5' mako pyyaml packaging ply pycparser
+          meson --version && aarch64-linux-gnu-gcc --version | head -1
+      - name: Build
+        env:
+          DRIVER: ${{ matrix.driver }}
+          SRC_REPO: ${{ matrix.src_repo }}
+          SRC_REF: ${{ (matrix.driver == 'radv' && inputs.radv_ref) || (matrix.driver == 'panvk' && inputs.panvk_ref) || matrix.default_ref }}
+          ZIP_NAME: ${{ matrix.name }}-Linux.zip
+          META_NAME: ${{ matrix.name }} (Linux, glibc)
+        run: ./build_linux_driver.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}-Linux
+          path: linux_workdir/${{ matrix.name }}-Linux.zip
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}-failed-logs
+          path: |
+            linux_workdir/src/build-linux/meson-logs/meson-log.txt
+            linux_workdir/src/build-host/meson-logs/meson-log.txt
