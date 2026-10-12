@@ -59,10 +59,27 @@ jobs:
           rm -rf "$a" && git clone -q "https://github.com/${{ inputs.src_repo }}.git" "$a"
           git -C "$a" checkout -q "${{ inputs.src_ref }}"
           (cd "$a" && ./scripts/fetch-mesa.sh "$a/work" && ./scripts/apply-patches.sh --profile "${{ inputs.profile }}" --mesa "$a/work/mesa")
-          echo "NDK: $ANDROID_NDK_ROOT"
-          HOST_TOOLS="$PWD/linux_workdir/host/bin" MESA="$a/work/mesa" BDIR="$a/build/android" DDIR="$a/dist" \
-            "$a/scripts/build-android.sh" --profile "${{ inputs.profile }}" --ndk "$ANDROID_NDK_ROOT" \
-            || { tail -n 60 "$a/build/android.log" 2>/dev/null; exit 1; }
+          # Same recipe as the project's own CI (build-g615-panvk.yml): its android.toml cross file
+          # and its prebuilt Android shims (libdrm, xcb) under shims/.
+          export ANDROID_NDK_HOME="$ANDROID_NDK_LATEST_HOME" MESON_WORKING_DIR="$a"
+          CLANG_DIR="$(ls -d $ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/*/lib/linux/aarch64 2>/dev/null | tail -n1)"
+          export CLANG_LIB_DIR="$CLANG_DIR"
+          sudo apt-get install -y gettext-base
+          envsubst < "$a/android.toml" > "$a/android-cross.txt"
+          ht="$PWD/linux_workdir/host/bin"
+          ln -sf "$ht/mesa_clc" "$ht/mesa-clc"; ln -sf "$ht/vtn_bindgen2" "$ht/vtn-bindgen2"
+          export PATH="$ht:$PATH"
+          (cd "$a" && PKG_CONFIG_LIBDIR="$a/shims" meson setup build-android work/mesa --cross-file android-cross.txt \
+            -Dbuildtype=release -Dplatforms=android -Dandroid-stub=true -Dandroid-strict=false \
+            -Dandroid-libbacktrace=disabled -Dplatform-sdk-version=30 -Dglx=disabled -Dgbm=disabled \
+            -Degl=disabled -Dopengl=false -Dgles1=disabled -Dgles2=disabled -Dglvnd=disabled \
+            -Dvalgrind=disabled -Dgallium-drivers= -Dshared-glapi=disabled -Dzstd=disabled \
+            -Dmesa-clc=system -Dprecomp-compiler=system -Dvulkan-drivers=panfrost -Dllvm=disabled \
+            -Dpanfrost-kmds=kbase \
+            || { tail -n 60 build-android/meson-logs/meson-log.txt; exit 1; })
+          ninja -C "$a/build-android" src/panfrost/vulkan/libvulkan_panfrost.so
+          mkdir -p "$a/dist" && cp "$a/build-android/src/panfrost/vulkan/libvulkan_panfrost.so" "$a/dist/"
+          ANDROID_NDK_ROOT="$ANDROID_NDK_HOME"
           so="$a/dist/libvulkan_panfrost.so"
           "$ANDROID_NDK_ROOT"/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip "$so"
           "$ANDROID_NDK_ROOT"/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf -d "$so" | grep NEEDED
