@@ -155,6 +155,7 @@ restore_desktop_dirs(){
 	for d in src/loader src/x11; do
 		[ -d "$mesa/$d" ] || missing+=("$d")
 	done
+	[ -d "$mesa/include/pci_ids" ] || missing+=(include/pci_ids)
 	local need_uapi=0
 	[ -f "$mesa/include/drm-uapi/nouveau_drm.h" ] || need_uapi=1
 	[ ${#missing[@]} = 0 ] && [ $need_uapi = 0 ] && return 0
@@ -190,13 +191,17 @@ build_panvk_host_tools(){
 		-Dvulkan-drivers=panfrost -Dgallium-drivers= -Dplatforms= -Dopengl=false \
 		-Dgbm=disabled -Dglx=disabled -Degl=disabled -Dvulkan-layers= -Dtools= -Dxmlconfig=disabled \
 		-Dllvm=enabled -Dmesa-clc=enabled -Dinstall-mesa-clc=true \
-		-Dprecomp-compiler=enabled -Dinstall-precomp-compiler=true \
+		-Dprecomp-compiler=enabled -Dinstall-precomp-compiler=true -Dpanfrost-kmds=kbase \
 		|| { tail -80 build-host/meson-logs/meson-log.txt; die "host tools: meson setup failed"; }
-	ninja -C build-host install || die "host tools: build failed"
-	for t in mesa_clc panfrost_compile; do
-		[ -x "$hosttools/bin/$t" ] || die "host tool $t was not installed"
+	# Only the three build tools are needed from this machine's build, not the driver itself.
+	local t target
+	for t in mesa_clc vtn_bindgen2 panfrost_compile; do
+		target="$(ninja -C build-host -t targets all | grep -oE "^src/[^:]*/$t" | head -1)"
+		[ -n "$target" ] || die "host tools: no target for $t"
+		ninja -C build-host "$target" || die "host tools: $t failed to build"
+		install -Dm755 "build-host/$target" "$hosttools/bin/$t"
 	done
-	ls "$hosttools/bin"
+	ls -l "$hosttools/bin"
 }
 
 build(){
