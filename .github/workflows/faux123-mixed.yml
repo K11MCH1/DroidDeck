@@ -1,0 +1,37 @@
+# faux123's device-tuned PanVK builds: Android half as published (his patches are private, so no
+# Linux rebuild); paired with our PanVK-Mali-kbase Linux half for the same GPU.
+name: faux123 mixed pairs
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/faux123-mixed.yml']
+permissions:
+  contents: write
+jobs:
+  pair:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        id: [PanVK-faux123-RP4Pro, PanVK-faux123-Ace, PanVK-faux123-RG556]
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package
+        run: |
+          gh release download panvk-mali-kbase -p 'PanVK-Mali-kbase-Linux.zip' -D linux
+          python3 make_release.py "${{ matrix.id }}" linux/PanVK-Mali-kbase-Linux.zip out "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          mv "out/${{ matrix.id }}-Linux.zip" "out/${{ matrix.id }}-Linux.zip" 2>/dev/null || true
+      - name: Update this driver's release
+        run: |
+          tag="$(echo '${{ matrix.id }}' | tr '[:upper:]' '[:lower:]')"
+          title="${{ matrix.id }} for DroidDeck (test)"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release edit "$tag" --notes-file out/NOTES.md --title "$title"
+          else
+            gh release create "$tag" --prerelease --title "$title" --notes-file out/NOTES.md
+          fi
+          gh release upload "$tag" out/*.zip --clobber
+          gh release view "$tag" --json assets --jq '.assets[] | "\(.name) \(.size)"'

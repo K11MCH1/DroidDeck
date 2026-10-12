@@ -60,13 +60,13 @@ Experimental. **Not tested on a device yet.** This release is replaced in place 
 {d['gpus']}
 
 ## Files
-- **Linux half** (`{did}-Linux.zip`): runs inside DroidDeck's Linux for Steam and games (runtime slot). Built here from the author's public source.
+- **Linux half** (`{did}-Linux.zip`): runs inside DroidDeck's Linux for Steam and games (runtime slot). Built here from public source.
 {android_line}
 {pair_line}
 
 ## This build
 - Date: {today}
-- Linux half source: [{d['build']['src_repo']}]({d['source']}) @ `{lmeta['sourceCommit']}`
+- Linux half source: {lmeta.get('source', d['source'])} @ `{lmeta['sourceCommit']}`
 - Minimum glibc: {lmeta.get('minGlibc', '?')}
 - CI run: {run_url}
 {f"- Note: {d['note']}" if d.get('note') else ""}

@@ -110,5 +110,56 @@
       "kmds": "kbase"
     },
     "note": "Built from the project's g610-v10-csf profile, which its author marks as planned and not yet validated. The G710 is the same GPU generation. No official Android release exists; the Android half will be built here."
+  },
+  {
+    "id": "PanVK-faux123-RP4Pro",
+    "tag": "panvk-faux123-rp4pro",
+    "title": "PanVK faux123 (Retroid Pocket 4 Pro)",
+    "gpus": "Retroid Pocket 4 Pro only (Dimensity 1100, Mali-G77 MC9). Tuned and tested by the author on that handheld.",
+    "author": "faux123 (proof of concept, no support from the author)",
+    "source": "https://github.com/faux123/panvk-faux123-driver-rp4pro",
+    "android": {
+      "repo": "faux123/panvk-faux123-driver-rp4pro",
+      "asset": "panvk_faux123_rp4pro_.*\\.adpkg\\.zip$"
+    },
+    "build": {
+      "kind": "repack",
+      "linux_from": "panvk-mali-kbase"
+    },
+    "note": "Mixed pair. The Android half is faux123's own build for this device, unchanged; his extra patches are in a private repo, so it cannot be rebuilt for Linux. The Linux half is our zenithblue PanVK-kbase build (same Mesa base, covers this GPU)."
+  },
+  {
+    "id": "PanVK-faux123-Ace",
+    "tag": "panvk-faux123-ace",
+    "title": "PanVK faux123 (GameForce Ace)",
+    "gpus": "GameForce Ace only (Mali-G610). Tuned and tested by the author on that handheld.",
+    "author": "faux123 (proof of concept, no support from the author)",
+    "source": "https://github.com/faux123/panvk-faux123-driver-ace",
+    "android": {
+      "repo": "faux123/panvk-faux123-driver-ace",
+      "asset": "panvk_faux123_ace_.*\\.adpkg\\.zip$"
+    },
+    "build": {
+      "kind": "repack",
+      "linux_from": "panvk-mali-kbase"
+    },
+    "note": "Mixed pair. The Android half is faux123's own build for this device, unchanged; his extra patches are in a private repo, so it cannot be rebuilt for Linux. The Linux half is our zenithblue PanVK-kbase build (same Mesa base, covers this GPU)."
+  },
+  {
+    "id": "PanVK-faux123-RG556",
+    "tag": "panvk-faux123-rg556",
+    "title": "PanVK faux123 (Anbernic RG556)",
+    "gpus": "Anbernic RG556 only (Unisoc T820, Mali-G57). Tuned and tested by the author on that handheld.",
+    "author": "faux123 (proof of concept, no support from the author)",
+    "source": "https://github.com/faux123/panvk-faux123-driver-rg556",
+    "android": {
+      "repo": "faux123/panvk-faux123-driver-rg556",
+      "asset": "panvk_faux123_rg556_.*\\.adpkg\\.zip$"
+    },
+    "build": {
+      "kind": "repack",
+      "linux_from": "panvk-mali-kbase"
+    },
+    "note": "Mixed pair. The Android half is faux123's own build for this device, unchanged; his extra patches are in a private repo, so it cannot be rebuilt for Linux. The Linux half is our zenithblue PanVK-kbase build (same Mesa base, covers this GPU)."
   }
 ]
