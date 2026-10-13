@@ -2,6 +2,15 @@
 
 Newest first. Devices only; testers are not named here.
 
+## 2026-10-13 — Test build 6c7242aa
+- Venus: gamescope no longer requires VK_EXT_robustness2 (patch 0128, gamescope p16).
+- PanVK fd-leak drivers: the app re-downloads a driver when its GitHub digest changes. The open-files limit is raised as a safety net.
+- Mali bridge switch is saved and honored. On Mali, a PanVK pair keeps the screen on the phone's own driver (fixes the switch-back hang).
+- APKs are now signed and uploaded by `.github/workflows/test-apk-release.yml`.
+- First results on 1c758abd, after this build was cut:
+  - Galaxy S24 FE: no explicit-sync errors any more, and Monster Hunter World runs ~30–54 fps before stopping (cause not in the log).
+  - Galaxy A15 (G57) on Venus: gamescope and Steam come up on Venus. Salt and Sanctuary fails because Venus on this G57 lacks `multiDrawIndirect`, which DXVK requires.
+
 ## 2026-10-13 — PanVK kbase file-descriptor leak fixed (driver rebuilds)
 - **The freeze:** the G925 Steam freeze after ~10 minutes ("failed to import sync file 'Too many open files'") is a per-frame fd leak in PanVK's kbase CPU sync.
 - **The cause:** `kbase_cpu_sync_import_sync_file()` dup()s the sync_file into a waiter on `pending_data`, but the CPU-wait-complete, signal, reset, set_pending and move-destination paths dropped `pending_data` without closing it.
