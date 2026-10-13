@@ -1,0 +1,84 @@
+name: Test APK release
+
+# Signs a DroidDeck test/non-adreno-all build (the Build APK run's artifact) into the four
+# variants and replaces the APKs on the droiddeck-test-non-adreno-all release - all on GitHub,
+# nothing goes through a phone. Release notes are edited separately.
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Droid-Deck/DroidDeck Build APK run id (test/non-adreno-all)
+        required: true
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency: test-apk-release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: droiddeck-test-non-adreno-all
+    steps:
+      - name: Find the run's commit
+        id: run
+        run: |
+          set -euo pipefail
+          read -r sha branch concl < <(gh api "repos/Droid-Deck/DroidDeck/actions/runs/${{ inputs.run_id }}" \
+            --jq '"\(.head_sha) \(.head_branch) \(.conclusion)"')
+          [ "$branch" = test/non-adreno-all ] || { echo "::error::run is on $branch"; exit 1; }
+          [ "$concl" = success ] || { echo "::error::run concluded $concl"; exit 1; }
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "short=${sha:0:8}" >> "$GITHUB_OUTPUT"
+
+      - name: Check out DroidDeck at that commit (signing tools)
+        uses: actions/checkout@v4
+        with:
+          repository: Droid-Deck/DroidDeck
+          ref: ${{ steps.run.outputs.sha }}
+          path: dd
+          sparse-checkout: |
+            tools/release
+            keystore
+
+      - name: Download the build
+        run: |
+          set -euo pipefail
+          gh run download "${{ inputs.run_id }}" -R Droid-Deck/DroidDeck -n droiddeck-apk -D in
+          ls -la in
+
+      - name: Sign the four variants
+        env:
+          KEYSTORE_B64: ${{ secrets.DROIDDECK_RELEASE_KEYSTORE_B64 }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.DROIDDECK_RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: droiddeck
+        run: |
+          set -euo pipefail
+          umask 077
+          ks=$RUNNER_TEMP/release.p12
+          base64 -d <<<"$KEYSTORE_B64" > "$ks"
+          export RELEASE_KEYSTORE=$ks
+          export BUILD_TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          apk=$(ls in/*.apk | head -1)
+          mkdir -p out
+          s=${{ steps.run.outputs.short }}
+          for v in standard pubg antutu ludashi; do
+            suf=$([ $v = standard ] && echo "" || echo "-$v")
+            bash dd/tools/release/sign-apk.sh "$apk" "$v" "out/DroidDeck-test-non-adreno-all-$s$suf.apk"
+          done
+          rm -f "$ks"
+          (cd out && sha256sum *.apk > SHA256SUMS && cat SHA256SUMS)
+
+      - name: Replace the release's APKs
+        run: |
+          set -euo pipefail
+          R=${{ github.repository }}
+          for a in $(gh release view "$TAG" -R "$R" --json assets --jq '.assets[].name'); do
+            gh release delete-asset "$TAG" "$a" -R "$R" -y
+          done
+          gh release upload "$TAG" -R "$R" out/*.apk out/SHA256SUMS --clobber
+          gh release edit "$TAG" -R "$R" --title "DroidDeck test build: non-Snapdragon (${{ steps.run.outputs.short }})"
+          gh release view "$TAG" -R "$R" --json name,assets --jq '.name, (.assets[] | "  \(.name)")'
