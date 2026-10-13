@@ -3,6 +3,8 @@
 Open-source Mesa Vulkan drivers for phones without a Snapdragon (Adreno) GPU, packaged for
 [DroidDeck](https://github.com/Droid-Deck/DroidDeck). Experimental and not yet device-tested. Nine driver releases plus a DroidDeck test build.
 
+Progress and test results: [PROGRESS_LOG.md](PROGRESS_LOG.md).
+
 Downloads: the **[Releases page](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases)** (one release per driver,
 updated in place on every rebuild).
 
