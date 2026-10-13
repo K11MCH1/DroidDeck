@@ -12,7 +12,7 @@ Newest first. Devices only; testers are not named here.
 
 ## 2026-10-12 — Mali Steam works; next build in progress
 - **vivo X100 (Mali-G720):** Steam installs and logs in on PanVK-kbase, with the phone's own driver drawing the screen. That makes it the first Mali phone with Steam working. Megabonk (DirectX 11) creates its device and plays music but stays on its loading screen. Ender Magnolia (DirectX 12) crashes at start, likely because DroidDeck over-reports DirectX 12 features on Mali.
-- **Dimensity 700 (Mali-G57):** a platformer was played to its first checkpoint. Issues: occasional negative-color flicker, and glitches when Steam's side menu opens.
+- **Correction:** an earlier note listed a Dimensity 700 (Mali-G57) playing a game; that tester was on an unofficial third-party "Mali universal" DroidDeck build (Venus-based), not these drivers.
 - **Xiaomi with a Dimensity 9400+ (Mali-G925):** PanVK runs on the newest Mali generation (arch v13) and Steam starts, but the screen stays black. gamescope logs "Compositor released us but we were not acquired", which points to a buffer hand-off bug in DroidDeck's screen code.
 - **Galaxy Tab S9 FE (Mali-G68) and Redmi Note 13 Pro+ (Mali-G610):** both stop at "Waiting for Steam's first frame". DroidDeck didn't find the phone's own Vulkan driver file, so it fell back to PanVK's Android half for the screen, which Mali's gralloc rejects.
 - **Galaxy S24 FE (Xclipse 940), RADV:**
