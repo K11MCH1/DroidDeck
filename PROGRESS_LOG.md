@@ -2,6 +2,18 @@
 
 Newest first. Devices only; testers are not named here.
 
+## 2026-10-13 — Test build 48d2d52d
+- Results on 8397965d:
+  - **Edge 60 (G615), bridge:** vkbridge passes 9/9 and is used. gamescope's YCbCr retry was accepted, then "findMemoryType failed".
+  - **Edge 60 (G615), Venus:** "vkr: ring_submit_cmd: vn_dispatch_command failed" → vtest server exited 137.
+  - **Narzo 60 (G57), Venus, 3ef49faa:** Steam logs in. Hotline Miami's HotlineGL.exe misses OpenAL32.dll.
+  - **A15 (G57), Moonlighter:** with DROIDDECK_MALI_COMPAT_DISABLE=1, DXVK lacks fillModeNonSolid, so the run is inconclusive.
+- gamescope p19 (patch 0131): the upload buffer falls back to HOST_VISIBLE without DEVICE_LOCAL on the bridge. A refused test pipeline is never destroyed.
+- Venus: gamescope skips immutable YCbCr samplers up front (GAMESCOPE_NO_YCBCR_SAMPLERS=1). virglrenderer logs and ignores destroys of objects it never created (the vkDestroyPipeline of a refused pipeline killed the server). Component `venus-proto13-6199a93f`.
+- OpenAL: Steam's shared package 229020 now maps to DroidDeck's OpenAL component, so games that list it get the DLLs.
+- Moonlighter: investigated only. It most likely stalls on first load; a DXVK debug log was requested.
+- Signed and published by test-apk-release.yml; announced by DroidDeck-Bot. Not yet run on a phone.
+
 ## 2026-10-13 — Test build 8397965d
 - "Steam interface: GPU drawing" is hidden on Mali, and a saved "on" is cleared. It rebooted a Mali-G615 phone as steamwebhelper started.
 - gamescope p18 (patch 0130): a composite pipeline refused at start-up is retried with a layout without immutable YCbCr samplers. On the G615 via Venus every composite shader was refused. Their SPIR-V caps were 1/43/50 (Shader, Sampled1D, ImageQuery), so fp16 was not the cause.

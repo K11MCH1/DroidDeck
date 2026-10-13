@@ -6,12 +6,15 @@ Experimental community testing. Not an official DroidDeck release.
 - **Test build (APK):** [DroidDeck test build: non-Snapdragon](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases/tag/droiddeck-test-non-adreno-all), built from the branch [`test/non-adreno-all`](https://github.com/Droid-Deck/DroidDeck/tree/test/non-adreno-all) of [DroidDeck](https://github.com/Droid-Deck/DroidDeck)
 - **Drivers:** the [Releases page](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases) has one release per driver, replaced in place on every rebuild
 - **Progress and test results:** [PROGRESS_LOG.md](PROGRESS_LOG.md) and the test build's release notes
-- **Newest test build: `8397965d`.**
-  - The "GPU drawing" setting is hidden on Mali.
-  - A Venus screen fix for chips like the Mali-G615.
-  - An OpenGL check with a software fallback so Steam opens on Venus.
-  - The Mali bridge self-test fix.
-  - Earlier builds added the GPU features DXVK needs on Venus (`7464bd76`), the Venus screen fix, the fixed PanVK drivers, a working bridge switch and the switch-back fix (`6c7242aa`), and the bridge memory fix with PanVK fallback (`3ef49faa`).
+- **Newest test build: `48d2d52d`.**
+  - A Mali bridge memory fix, so Steam's screen program can start.
+  - The Venus server no longer crashes on the Mali-G615.
+  - OpenAL installs automatically for games that need it.
+  - Earlier builds added:
+    - `8397965d`: "GPU drawing" hidden on Mali, the Venus screen retry, the Steam OpenGL check, and the bridge self-test fix
+    - `3ef49faa`: the bridge memory fix with PanVK fallback
+    - `7464bd76`: the GPU features DXVK needs on Venus
+    - `6c7242aa`: the fixed PanVK drivers and the driver-switch fixes
 - **⚠️ Mali phones on older builds:** don't turn on "Steam interface: GPU drawing", because it can reboot the phone. `8397965d` hides it on Mali.
 - **Where things stand (devices only):**
   - **First games on Mali (Venus):** Salt and Sanctuary and Children of Morta run at ~15–30 fps on a Galaxy A15 (Mali-G57), with no glitches.
@@ -21,7 +24,8 @@ Experimental community testing. Not an official DroidDeck release.
     - Hades on a Xiaomi 14T Pro (G720)
   - **Mali bridge:** creates images on the Edge 60 now. Drawing is still black, so it falls back to PanVK and Steam opens.
   - **Samsung S24 FE (Xclipse):** games run on RADV. Monster Hunter Rise boots but crashes before its menu.
-  - **In `8397965d`, waiting on retests:** Venus on the Mali-G615, the bridge drawing check, and hiding "GPU drawing" on Mali. Moonlighter on Venus is still being looked into.
+  - **Steam on Venus** opens on both Mali-G57 phones tested (Galaxy A15, Realme Narzo 60). The Mali bridge passes all its self-tests on the Edge 60 (G615).
+  - **In `48d2d52d`, waiting on retests:** bridge and Venus on the Mali-G615, and OpenAL for games like Hotline Miami. Moonlighter on Venus is still being looked into.
   - Full list in the test build's release notes.
 - **Get the test build only from the link above.** Other copies (for example on file-sharing sites) are not ours.
 
@@ -75,12 +79,13 @@ Parts the test build downloads by checksum (not for users to install by hand):
   - the Mali compatibility layer
 
   Built from David Cimo's sources by the test branch's CI.
-- **Patched gamescope** ([p18](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases/tag/gamescope-3.16.29-p18-nonadreno)): DroidDeck's gamescope with these additions:
+- **Patched gamescope** ([p19](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases/tag/gamescope-3.16.29-p19-nonadreno)): DroidDeck's gamescope with these additions:
   - a switch to turn off explicit sync on kernels that can't support it (Linux older than 6.6, and Mali)
   - David Cimo's patch for showing frames that arrive as plain shared-memory images (Venus)
   - running without `VK_EXT_robustness2`, which Venus doesn't offer on most Malis
   - logging which compute shader a GPU refuses, with the features it needs
-  - retrying a refused screen shader without video-colour (YCbCr) samplers
+  - retrying a refused screen shader without video-colour (YCbCr) samplers, and skipping them up front on Venus
+  - falling back to CPU-visible memory when no GPU-local and CPU-visible type exists (Mali bridge)
 - **Test APK signing:** `.github/workflows/test-apk-release.yml` signs a test-branch build into its four variants and replaces the release's APKs, all on GitHub.
 
 ## What this repo does
