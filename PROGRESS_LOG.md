@@ -2,6 +2,14 @@
 
 Newest first. Devices only; testers are not named here.
 
+## 2026-10-13 — Test build 8397965d
+- "Steam interface: GPU drawing" is hidden on Mali, and a saved "on" is cleared. It rebooted a Mali-G615 phone as steamwebhelper started.
+- gamescope p18 (patch 0130): a composite pipeline refused at start-up is retried with a layout without immutable YCbCr samplers. On the G615 via Venus every composite shader was refused. Their SPIR-V caps were 1/43/50 (Shader, Sampled1D, ImageQuery), so fp16 was not the cause.
+- Venus: `droiddeck-glprobe` opens GL through GLX like the Steam client, with `LIBGL_DEBUG=verbose`. If it fails, the client's GL goes to llvmpipe.
+- vkbridge self-test: the draw check now waits for the render pass's stores before reading back. Mali's tiler wrote zeros without the dependency, so the "black draw" was the test, not the bridge.
+- Moonlighter on Venus: investigated only. It most likely hangs before its first scene; next test is `DROIDDECK_MALI_COMPAT_DISABLE=1`.
+- Signed and published by test-apk-release.yml. Not yet run on a phone.
+
 ## 2026-10-13 — Results on 7464bd76 / 3ef49faa
 - **Galaxy A15 (Mali-G57), Venus, 7464bd76:** first games on Venus. Salt and Sanctuary and Children of Morta at ~15–30 fps. The layer emulates fillModeNonSolid, multiViewport, shaderClipDistance/CullDistance, robustBufferAccess2, textureCompressionBC and multiDrawIndirect. Moonlighter makes frames but the screen is black, with no audio.
 - **Edge 60 (G615), bridge, 3ef49faa:** the image self-test passes (LAZILY_ALLOCATED fix). The draw check gives "pixel 0 = 0x00000000", so 8/9; the fallback to PanVK worked and Steam opened.
