@@ -2,6 +2,15 @@
 
 Newest first. Devices only; testers are not named here.
 
+## 2026-10-13 — Test build ab545368
+- **PowerVR regression:** tools/linuxfs/preload/drm.c now uses PR #570's current same-file check. The old one failed below kernel 6.10 when Android blocks the fallback, so every PowerVR dmabuf import returned EOPNOTSUPP.
+- **mangoapp:** gets an empty /sys/class/thermal when the phone hides it (it crashed 5x at start).
+- **gamescope p20:**
+  - patch 0132 logs which waitable hung up, its fd, and the compositor connection's error
+  - patch 0133 uses driver-supported modifiers that aren't marked shareable (the bridge's BInit assert at rendervulkan.cpp:2418), or fails cleanly
+- **Venus glprobe:** on a failure, reruns with loader warnings, then tries without ZINK_DEBUG=compact, with ZINK_DESCRIPTORS=auto, without kopper, and without the compat layer (that last one for the log only). Software only if all of them fail.
+- Signed and published by test-apk-release.yml; announced by DroidDeck-Bot. Not yet run on a phone.
+
 ## 2026-10-13 — Results on 48d2d52d
 - **Edge 60 (G615), Venus:** Steam Big Picture opens (the render-server crash fix and the YCbCr skip work). glprobe: Zink failed ("glx: failed to create drisw screen", "FAIL glXChooseVisual"), so the Steam client fell back to llvmpipe, ~4–5 fps.
 - **Edge 60 (G615), bridge:** 9/9. The YCbCr retry was accepted, and the 0131 memory fallback logged "no memory type with properties 0x7 in type bits 0x3; without DEVICE_LOCAL: 1". Then an assert in rendervulkan.cpp:2418 (CVulkanTexture::BInit).
