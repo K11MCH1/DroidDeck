@@ -64,10 +64,11 @@ Parts the test build downloads by checksum (not for users to install by hand):
   - the Mali compatibility layer
 
   Built from David Cimo's sources by the test branch's CI.
-- **Patched gamescope** ([p16](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases/tag/gamescope-3.16.29-p17-nonadreno)): DroidDeck's gamescope with these additions:
+- **Patched gamescope** ([p17](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases/tag/gamescope-3.16.29-p17-nonadreno)): DroidDeck's gamescope with these additions:
   - a switch to turn off explicit sync on kernels that can't support it (Linux older than 6.6, and Mali)
   - David Cimo's patch for showing frames that arrive as plain shared-memory images (Venus)
   - running without `VK_EXT_robustness2`, which Venus doesn't offer on most Malis
+  - logging which compute shader a GPU refuses, with the features it needs
 - **Test APK signing:** `.github/workflows/test-apk-release.yml` signs a test-branch build into its four variants and replaces the release's APKs, all on GitHub.
 
 ## What this repo does
