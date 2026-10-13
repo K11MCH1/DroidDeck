@@ -2,6 +2,19 @@
 
 Newest first. Devices only; testers are not named here.
 
+## 2026-10-13 — Results on 7464bd76 / 3ef49faa
+- **Galaxy A15 (Mali-G57), Venus, 7464bd76:** first games on Venus. Salt and Sanctuary and Children of Morta at ~15–30 fps. The layer emulates fillModeNonSolid, multiViewport, shaderClipDistance/CullDistance, robustBufferAccess2, textureCompressionBC and multiDrawIndirect. Moonlighter makes frames but the screen is black, with no audio.
+- **Edge 60 (G615), bridge, 3ef49faa:** the image self-test passes (LAZILY_ALLOCATED fix). The draw check gives "pixel 0 = 0x00000000", so 8/9; the fallback to PanVK worked and Steam opened.
+- **Edge 60 (G615), Venus, 3ef49faa:** gamescope compute pipelines fail (-3), all of them the fp16 variants (SPIR-V caps 1 43 50). Zink still "failed to load driver" even though nullDescriptor is present.
+- **Edge 60 (G615), PanVK, "Steam interface: GPU drawing" on:** the phone reboots as steamwebhelper starts (the log ends NUL-padded). The S24 FE (Xclipse) is fine with it.
+- **S24 FE:** processes.txt shows the "CS rejected / DEVICE_LOST" errors come from Steam's `gldriverquery` startup probe. Monster Hunter Rise still crashes before its menu.
+- In progress (round 4):
+  - hide GPU drawing on Mali
+  - Venus gamescope without fp16
+  - a Zink probe with llvmpipe fallback
+  - the bridge draw path
+  - Moonlighter on Venus
+
 ## 2026-10-13 — Test build 3ef49faa
 - Venus: the Mali compatibility layer runs in every process except gamescope, so Zink in Steam and Xwayland gets nullDescriptor. If it is still missing, GL falls back to llvmpipe. Null texel-buffer stand-ins added. Component `venus-proto13-55b30fbf`.
 - vkbridge (#517 code): skips LAZILY_ALLOCATED memory types (Mali-G615 lists one first, so images had no memory type). If the self-test fails, the session falls back to the PanVK pair.

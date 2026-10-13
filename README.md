@@ -6,11 +6,21 @@ Experimental community testing. Not an official DroidDeck release.
 - **Test build (APK):** [DroidDeck test build: non-Snapdragon](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases/tag/droiddeck-test-non-adreno-all), built from the branch [`test/non-adreno-all`](https://github.com/Droid-Deck/DroidDeck/tree/test/non-adreno-all) of [DroidDeck](https://github.com/Droid-Deck/DroidDeck)
 - **Drivers:** the [Releases page](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases) has one release per driver, replaced in place on every rebuild
 - **Progress and test results:** [PROGRESS_LOG.md](PROGRESS_LOG.md) and the test build's release notes
-- **Newest test build: `3ef49faa`:** Steam's OpenGL on Mali (Venus), a likely Mali bridge fix with a safe fallback, the notification black-screen fix, and a Steam "GPU drawing" setting. `7464bd76` added the GPU features DXVK needs on Venus. Since `6c7242aa`, the builds also have the Venus screen fix, the fixed PanVK drivers (no more freeze after ~10 minutes), a working Mali bridge switch, and the switch-back fix. Not yet tested on a phone.
+- **Newest test build: `3ef49faa`.** Steam's OpenGL on Mali (Venus), the Mali bridge memory fix with a safe fallback to PanVK, the notification black-screen fix, and a Steam "GPU drawing" setting. `7464bd76` added the GPU features DXVK needs on Venus. Since `6c7242aa`, the builds also have the Venus screen fix, the fixed PanVK drivers (no more freeze after ~10 minutes), a working Mali bridge switch, and the switch-back fix.
+- **⚠️ Mali phones: don't turn on "Steam interface: GPU drawing".** On Mali it can reboot the phone. It's meant for Samsung (Xclipse), and the next build hides it on Mali.
 - **Where things stand (devices only):**
-  - Mali games run on PanVK: Hollow Knight on a Lenovo Legion Tab (G615), Castle Crashers on a Motorola Edge 60 (G615), and Hades on a Xiaomi 14T Pro (G720).
-  - Steam runs on the newest Mali (G925).
-  - Samsung S24 FE (Xclipse) games run on RADV.
+  - **First games on Mali (Venus):** Salt and Sanctuary and Children of Morta run at ~15–30 fps on a Galaxy A15 (Mali-G57), with no glitches.
+  - **Mali games on PanVK:**
+    - Hollow Knight on a Lenovo Legion Tab (G615)
+    - Celeste and Castle Crashers on a Motorola Edge 60 (G615), with picture glitches
+    - Hades on a Xiaomi 14T Pro (G720)
+  - **Mali bridge:** creates images on the Edge 60 now. Drawing is still black, so it falls back to PanVK and Steam opens.
+  - **Samsung S24 FE (Xclipse):** games run on RADV. Monster Hunter Rise boots but crashes before its menu.
+  - **Being fixed next:**
+    - Venus on the Mali-G615 (helper shaders and Steam's OpenGL)
+    - the bridge's black drawing
+    - Moonlighter's black screen on Venus
+    - hiding "GPU drawing" on Mali
   - Full list in the test build's release notes.
 - **Get the test build only from the link above.** Other copies (for example on file-sharing sites) are not ours.
 
