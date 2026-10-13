@@ -6,6 +6,12 @@ Experimental community testing. Not an official DroidDeck release.
 - **Test build (APK):** [DroidDeck test build: non-Snapdragon](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases/tag/droiddeck-test-non-adreno-all), built from the branch [`test/non-adreno-all`](https://github.com/Droid-Deck/DroidDeck/tree/test/non-adreno-all) of [DroidDeck](https://github.com/Droid-Deck/DroidDeck)
 - **Drivers:** the [Releases page](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases) has one release per driver, replaced in place on every rebuild
 - **Progress and test results:** [PROGRESS_LOG.md](PROGRESS_LOG.md) and the test build's release notes
+- **Newest test build: `6c7242aa`.** It is the first with the Venus screen fix, the fixed PanVK drivers (no more freeze after ~10 minutes), a working Mali bridge switch, and the switch-back fix. Not yet tested on a phone.
+- **Where things stand (devices only):**
+  - Mali games run on PanVK: Hollow Knight on a Lenovo Legion Tab (G615), Castle Crashers on a Motorola Edge 60 (G615), and Hades on a Xiaomi 14T Pro (G720).
+  - Steam runs on the newest Mali (G925).
+  - Samsung S24 FE (Xclipse) games run on RADV.
+  - Full list in the test build's release notes.
 - **Get the test build only from the link above.** Other copies (for example on file-sharing sites) are not ours.
 
 ## How graphics work on each kind of phone
@@ -58,9 +64,11 @@ Parts the test build downloads by checksum (not for users to install by hand):
   - the Mali compatibility layer
 
   Built from David Cimo's sources by the test branch's CI.
-- **Patched gamescope** ([p15](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases/tag/gamescope-3.16.29-p15-nonadreno)): DroidDeck's gamescope with two additions:
+- **Patched gamescope** ([p16](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases/tag/gamescope-3.16.29-p16-nonadreno)): DroidDeck's gamescope with three additions:
   - a switch to turn off explicit sync on kernels that can't support it (Linux older than 6.6, and Mali)
   - David Cimo's patch for showing frames that arrive as plain shared-memory images (Venus)
+  - running without `VK_EXT_robustness2`, which Venus doesn't offer on most Malis
+- **Test APK signing:** `.github/workflows/test-apk-release.yml` signs a test-branch build into its four variants and replaces the release's APKs, all on GitHub.
 
 ## What this repo does
 
@@ -73,7 +81,9 @@ How the builds work:
 
 - **Cross-compiling:** `build_linux_driver.sh` cross-compiles each source against an Arch Linux ARM sysroot.
 - **Android-only forks:** where a fork removed desktop pieces (window-system loader, X11 helpers, some headers), they are restored from upstream Mesa, and small stand-ins in `compat/` replace Android's logging and property calls.
-- **PanVK patch:** every PanVK build carries `patches/panvk_kbase_drm_node.py`, so the Mali device shows up as a GPU to DroidDeck's screen manager.
+- **PanVK patches:** every PanVK build carries two patches:
+  - `patches/panvk_kbase_drm_node.py`, so the Mali device shows up as a GPU to DroidDeck's screen manager
+  - `patches/panvk_kbase_sync_file_fd_leak.py`, which fixes a per-frame file leak that froze the GPU after about 10 minutes
 - **Workflows and releases:**
   - each driver has its own workflow (`.github/workflows/<driver>.yml`, all using `_driver.yml`) and its own release
   - `make_release.py` builds the pair and its notes from `drivers.json`
