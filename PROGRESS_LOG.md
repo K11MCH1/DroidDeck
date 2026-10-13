@@ -2,6 +2,14 @@
 
 Newest first. Devices only; testers are not named here.
 
+## 2026-10-13 — Test build c359eac6
+- Mali: the phone's own driver always draws the screen under Auto (no driver-file lookup).
+- gamescope explicit sync off on kernels older than 6.6 and on Mali (patched gamescope `gamescope-3.16.29-p14-nonadreno`, released here).
+- Steam's web view composites in software with Mali / Samsung driver pairs (tile corruption).
+- vkd3d-proton reports the driver's real DirectX 12 caps on PanVK / RADV (no forced 12_2 / SM 6.9).
+- Sound: nothing in PulseAudio's start-up can block; fallbacks run afterwards with timeouts; a reboot hint when Android refuses the output.
+- Logging: buffer attach/release tracing (G925 black screen), imported buffer formats (colour flicker), Mesa output in game logs.
+
 ## 2026-10-12 — Mali Steam works; next build in progress
 - **vivo X100 (Mali-G720):** Steam installs and logs in on PanVK-kbase, with the phone's own driver drawing the screen. That makes it the first Mali phone with Steam working. Megabonk (DirectX 11) creates its device and plays music but stays on its loading screen. Ender Magnolia (DirectX 12) crashes at start, likely because DroidDeck over-reports DirectX 12 features on Mali.
 - **Dimensity 700 (Mali-G57):** a platformer was played to its first checkpoint. Issues: occasional negative-color flicker, and glitches when Steam's side menu opens.
