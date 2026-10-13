@@ -240,6 +240,10 @@ apply_panvk_fixes(){
 	[ "$DRIVER" = panvk ] || return 0
 	python3 "$repo/patches/panvk_kbase_drm_node.py" "$mesa" || die "panvk_kbase_drm_node.py failed"
 	grep -q BL_DRM_STANDIN "$mesa/src/panfrost/vulkan/panvk_physical_device.c" || die "DRM-node fix did not land"
+	python3 "$repo/patches/panvk_kbase_sync_file_fd_leak.py" "$mesa" || die "panvk_kbase_sync_file_fd_leak.py failed"
+	if grep -q kbase_sync_file_wait_func "$mesa/src/panfrost/vulkan/panvk_physical_device.c"; then
+		grep -q BL_SYNC_FILE_FD_LEAK "$mesa/src/panfrost/vulkan/panvk_physical_device.c" || die "sync-file fd-leak fix did not land"
+	fi
 }
 
 build(){
