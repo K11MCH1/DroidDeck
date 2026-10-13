@@ -16,11 +16,13 @@ To use these drivers, testers need the DroidDeck test build, which picks the rig
 |---|---|---|
 | Snapdragon (Adreno) | Turnip, unchanged | the usual Turnip versions |
 | Pixel 10 / 11 (PowerVR) | the phone's own driver | none |
-| Samsung Exynos (Xclipse) | the phone's own driver | RADV Xclipse, Mali bridge |
-| Mali v9 to v13 on Android 15+ (G57 to G925) | PanVK-kbase (zenithblue) | the per-chip PanVK pair, the faux123 pair on its handheld, Mali bridge |
+| Samsung Exynos (Xclipse) | RADV Xclipse (booted Steam and ran a game on a Galaxy S24 FE) | the phone's own driver, Mali bridge |
+| Mali v9 to v13 on Android 15+ (G57 / G68 / G77 / G78, G610 / G710, G615 / G715, G720 / G725, G925) | PanVK-kbase (zenithblue) | the per-chip PanVK pair, the faux123 pair on its handheld, Mali bridge |
 | Mali on Android 14 or older | the per-chip PanVK pair | Mali bridge |
 | Mali-G52 / G76 | FristOneRR PanVK | Mali bridge |
 | Any other Mali | Mali bridge (turned on automatically) | none |
+
+**Results so far:** Samsung Galaxy S24 FE (Xclipse 940) with RADV Xclipse boots Steam and runs games (R.E.P.O. ~23-30 fps; no sound yet). Mali: the Linux driver loads and finds the GPU (Mali-G610); reaching Steam is being tested with the newest build.
 
 Report results with DroidDeck's session logs (Setup > Share logs) in the DroidDeck Discord testing thread, and say which driver was in use.
 
