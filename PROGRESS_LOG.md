@@ -2,6 +2,16 @@
 
 Newest first. Devices only; testers are not named here.
 
+## 2026-10-13 — PanVK kbase file-descriptor leak fixed (driver rebuilds)
+- **The freeze:** the G925 Steam freeze after ~10 minutes ("failed to import sync file 'Too many open files'") is a per-frame fd leak in PanVK's kbase CPU sync.
+- **The cause:** `kbase_cpu_sync_import_sync_file()` dup()s the sync_file into a waiter on `pending_data`, but the CPU-wait-complete, signal, reset, set_pending and move-destination paths dropped `pending_data` without closing it.
+- **The fix:** `patches/panvk_kbase_sync_file_fd_leak.py` frees the waiter at each of those points.
+  - zenithblue's tree has 5 such drops, and the G615 / G710 trees share its code.
+  - wonderkast02's G720 tree has 1 (signal).
+  - The JM tree doesn't have this code, so nothing changes there.
+- **Rebuilt:** PanVK-Mali-kbase, G615, G710, G720, JM, and the faux123 mixed pairs (all of which use the kbase Linux half). Only the Linux halves change; the Android halves come from the authors' own builds and may have the same leak.
+- **Status:** not yet tested on a device.
+
 ## 2026-10-13 — Overnight results on 1c758abd
 - **Mali games run (PanVK-kbase, phone's own driver for the screen):**
   - Lenovo Legion Tab (G615): Hollow Knight at ~35–45 fps
