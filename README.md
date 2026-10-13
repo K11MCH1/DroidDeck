@@ -6,7 +6,7 @@ Experimental community testing. Not an official DroidDeck release.
 - **Test build (APK):** [DroidDeck test build: non-Snapdragon](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases/tag/droiddeck-test-non-adreno-all), built from the branch [`test/non-adreno-all`](https://github.com/Droid-Deck/DroidDeck/tree/test/non-adreno-all) of [DroidDeck](https://github.com/Droid-Deck/DroidDeck)
 - **Drivers:** the [Releases page](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases) has one release per driver, replaced in place on every rebuild
 - **Progress and test results:** [PROGRESS_LOG.md](PROGRESS_LOG.md) and the test build's release notes
-- **Newest test build: `6c7242aa`.** It is the first with the Venus screen fix, the fixed PanVK drivers (no more freeze after ~10 minutes), a working Mali bridge switch, and the switch-back fix. Not yet tested on a phone.
+- **Newest test build: `7464bd76`:** adds the missing GPU features DXVK needs on Mali (Venus). Since `6c7242aa`, the builds also have the Venus screen fix, the fixed PanVK drivers (no more freeze after ~10 minutes), a working Mali bridge switch, and the switch-back fix. Not yet tested on a phone.
 - **Where things stand (devices only):**
   - Mali games run on PanVK: Hollow Knight on a Lenovo Legion Tab (G615), Castle Crashers on a Motorola Edge 60 (G615), and Hades on a Xiaomi 14T Pro (G720).
   - Steam runs on the newest Mali (G925).

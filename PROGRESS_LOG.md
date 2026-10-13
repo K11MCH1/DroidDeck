@@ -2,6 +2,11 @@
 
 Newest first. Devices only; testers are not named here.
 
+## 2026-10-13 — Test build 7464bd76
+- Mali compatibility layer (Venus): emulates multiDrawIndirect (split into single draws), VK_EXT_depth_clip_enable (as depth clamp) and VK_EXT_robustness2/nullDescriptor (stand-in buffer and 1x1 image). These are the DXVK 3.1 requirements these Malis lack. The layer logs which features it emulates.
+- Venus component `venus-proto13-22694a38`. APK signed and published by test-apk-release.yml.
+- Not yet run on a phone.
+
 ## 2026-10-13 — Test build 6c7242aa
 - Venus: gamescope no longer requires VK_EXT_robustness2 (patch 0128, gamescope p16).
 - PanVK fd-leak drivers: the app re-downloads a driver when its GitHub digest changes. The open-files limit is raised as a safety net.
