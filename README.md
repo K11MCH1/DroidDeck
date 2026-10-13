@@ -24,8 +24,16 @@ Experimental community testing. Not an official DroidDeck release.
     - Hades on a Xiaomi 14T Pro (G720)
   - **Mali bridge:** creates images on the Edge 60 now. Drawing is still black, so it falls back to PanVK and Steam opens.
   - **Samsung S24 FE (Xclipse):** games run on RADV. Monster Hunter Rise boots but crashes before its menu.
-  - **Steam on Venus** opens on both Mali-G57 phones tested (Galaxy A15, Realme Narzo 60). The Mali bridge passes all its self-tests on the Edge 60 (G615).
-  - **In `48d2d52d`, waiting on retests:** bridge and Venus on the Mali-G615, and OpenAL for games like Hotline Miami. Moonlighter on Venus is still being looked into.
+  - **Steam on Venus opens on every Mali tried with `48d2d52d`:** Galaxy A15 and Realme Narzo 60 (G57), and Motorola Edge 60 (G615). On the G615 it's slow for now (software OpenGL).
+  - **Mali bridge:** passes all its self-tests on the Edge 60 (G615); Steam's screen program now stops while creating a picture.
+  - **Samsung S24 FE:** R.E.P.O. and Mouse P.I. run, then a new "IWaitable hung up" crash; logging is being added.
+  - **Pixel 10 Pro XL (PowerVR):** a regression in our build (it worked on #570) and being fixed.
+  - **Being worked on:**
+    - the PowerVR regression
+    - the S24 FE crash
+    - the bridge's picture creation
+    - Steam's OpenGL on Venus (G615)
+    - Moonlighter on Venus
   - Full list in the test build's release notes.
 - **Get the test build only from the link above.** Other copies (for example on file-sharing sites) are not ours.
 

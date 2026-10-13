@@ -2,6 +2,17 @@
 
 Newest first. Devices only; testers are not named here.
 
+## 2026-10-13 — Results on 48d2d52d
+- **Edge 60 (G615), Venus:** Steam Big Picture opens (the render-server crash fix and the YCbCr skip work). glprobe: Zink failed ("glx: failed to create drisw screen", "FAIL glXChooseVisual"), so the Steam client fell back to llvmpipe, ~4–5 fps.
+- **Edge 60 (G615), bridge:** 9/9. The YCbCr retry was accepted, and the 0131 memory fallback logged "no memory type with properties 0x7 in type bits 0x3; without DEVICE_LOCAL: 1". Then an assert in rendervulkan.cpp:2418 (CVulkanTexture::BInit).
+- **Pixel 10 Pro XL (PowerVR DXT-48-1536, Android 17), #570 route:** regression vs the PR #570 build. "zink: failed drmPrimeFDToHandle Operation not supported" → "XWAYLAND: importing the supplied dmabufs failed" → gamescope "X11 I/O error". Also "Permission denied: /sys/class/thermal/".
+- **S24 FE, 8397965d:** R.E.P.O. and Mouse P.I. run, then gamescope "IWaitable hung up. Aborting." with no SYNCOBJ errors (explicit sync is off). Triggered after a resume, and after 60↔120 Hz flips.
+- Round 6 in progress:
+  - the PowerVR Xwayland fix and thermal-read tolerance
+  - IWaitable logging and continuing where safe
+  - bridge BInit
+  - Zink on Venus (G615)
+
 ## 2026-10-13 — Test build 48d2d52d
 - Results on 8397965d:
   - **Edge 60 (G615), bridge:** vkbridge passes 9/9 and is used. gamescope's YCbCr retry was accepted, then "findMemoryType failed".
