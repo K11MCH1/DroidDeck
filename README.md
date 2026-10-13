@@ -22,7 +22,7 @@ To use these drivers, testers need the DroidDeck test build, which picks the rig
 | Mali-G52 / G76 | FristOneRR PanVK | Mali bridge |
 | Any other Mali | Mali bridge (turned on automatically) | none |
 
-**Results so far:** Samsung Galaxy S24 FE (Xclipse 940) with RADV Xclipse boots Steam and runs games (R.E.P.O. ~23-30 fps; no sound yet). Mali: the Linux driver loads and finds the GPU (Mali-G610); reaching Steam is being tested with the newest build.
+**Results so far:** Samsung Galaxy S24 FE (Xclipse 940) with RADV Xclipse boots Steam and runs games (R.E.P.O. ~23-30 fps; a no-sound fix is in the newest build). Mali: the Linux driver loads and finds the GPU (Mali-G610); reaching Steam is being tested with the newest build.
 
 Report results with DroidDeck's session logs (Setup > Share logs) in the DroidDeck Discord testing thread, and say which driver was in use.
 
