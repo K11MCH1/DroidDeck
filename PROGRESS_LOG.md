@@ -2,6 +2,15 @@
 
 Newest first. Devices only; testers are not named here.
 
+## 2026-10-13 — Test build 3ef49faa
+- Venus: the Mali compatibility layer runs in every process except gamescope, so Zink in Steam and Xwayland gets nullDescriptor. If it is still missing, GL falls back to llvmpipe. Null texel-buffer stand-ins added. Component `venus-proto13-55b30fbf`.
+- vkbridge (#517 code): skips LAZILY_ALLOCATED memory types (Mali-G615 lists one first, so images had no memory type). If the self-test fails, the session falls back to the PanVK pair.
+- Compositor: a buffer shown on two surfaces (gamescope planes while a notification is up) is released only when both let go. This is the likely cause of the notification black screen.
+- gamescope p17 (patch 0129): a refused compute pipeline is logged with its SPIR-V capabilities.
+- New Setup switch "Steam interface: GPU drawing". New processes.txt log on open driver pairs.
+- Investigated only: Castle Crashers' missing audio (Proton Experimental placeholder audio) and PanVK D3D9 sprite glitches on G615 (likely a driver bug).
+- Results on 6c7242aa (Edge 60, Narzo 60, A15, S24 FE): see the release notes. Not yet run on a phone.
+
 ## 2026-10-13 — Test build 7464bd76
 - Mali compatibility layer (Venus): emulates multiDrawIndirect (split into single draws), VK_EXT_depth_clip_enable (as depth clamp) and VK_EXT_robustness2/nullDescriptor (stand-in buffer and 1x1 image). These are the DXVK 3.1 requirements these Malis lack. The layer logs which features it emulates.
 - Venus component `venus-proto13-22694a38`. APK signed and published by test-apk-release.yml.

@@ -6,7 +6,7 @@ Experimental community testing. Not an official DroidDeck release.
 - **Test build (APK):** [DroidDeck test build: non-Snapdragon](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases/tag/droiddeck-test-non-adreno-all), built from the branch [`test/non-adreno-all`](https://github.com/Droid-Deck/DroidDeck/tree/test/non-adreno-all) of [DroidDeck](https://github.com/Droid-Deck/DroidDeck)
 - **Drivers:** the [Releases page](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases) has one release per driver, replaced in place on every rebuild
 - **Progress and test results:** [PROGRESS_LOG.md](PROGRESS_LOG.md) and the test build's release notes
-- **Newest test build: `7464bd76`:** adds the missing GPU features DXVK needs on Mali (Venus). Since `6c7242aa`, the builds also have the Venus screen fix, the fixed PanVK drivers (no more freeze after ~10 minutes), a working Mali bridge switch, and the switch-back fix. Not yet tested on a phone.
+- **Newest test build: `3ef49faa`:** Steam's OpenGL on Mali (Venus), a likely Mali bridge fix with a safe fallback, the notification black-screen fix, and a Steam "GPU drawing" setting. `7464bd76` added the GPU features DXVK needs on Venus. Since `6c7242aa`, the builds also have the Venus screen fix, the fixed PanVK drivers (no more freeze after ~10 minutes), a working Mali bridge switch, and the switch-back fix. Not yet tested on a phone.
 - **Where things stand (devices only):**
   - Mali games run on PanVK: Hollow Knight on a Lenovo Legion Tab (G615), Castle Crashers on a Motorola Edge 60 (G615), and Hades on a Xiaomi 14T Pro (G720).
   - Steam runs on the newest Mali (G925).
@@ -64,7 +64,7 @@ Parts the test build downloads by checksum (not for users to install by hand):
   - the Mali compatibility layer
 
   Built from David Cimo's sources by the test branch's CI.
-- **Patched gamescope** ([p16](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases/tag/gamescope-3.16.29-p16-nonadreno)): DroidDeck's gamescope with three additions:
+- **Patched gamescope** ([p16](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases/tag/gamescope-3.16.29-p17-nonadreno)): DroidDeck's gamescope with these additions:
   - a switch to turn off explicit sync on kernels that can't support it (Linux older than 6.6, and Mali)
   - David Cimo's patch for showing frames that arrive as plain shared-memory images (Venus)
   - running without `VK_EXT_robustness2`, which Venus doesn't offer on most Malis
