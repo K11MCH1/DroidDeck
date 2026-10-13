@@ -16,7 +16,7 @@ works on Snapdragon. The test build adds these routes for other GPUs:
 | Route | What it does | Where it comes from |
 |---|---|---|
 | **Open driver pairs** (PanVK for Mali, RADV for Xclipse) | An open-source Mesa driver runs Steam and games; the phone's own driver (or the pair's Android half) draws DroidDeck's screen | The drivers below, rebuilt here |
-| **Mali (Venus)** | Mesa's Venus driver sends every Vulkan command to a small server in the app, which runs it on the **phone's own Mali driver**; a compatibility layer adds the features DXVK needs | [David Cimo's DroidDeck Mali port](https://github.com/DavidCimo/droiddeck-mali) (being added to the test build) |
+| **Mali (Venus)** | Mesa's Venus driver sends every Vulkan command to a small server in the app, which runs it on the **phone's own Mali driver**; a compatibility layer adds the features DXVK needs | [David Cimo's DroidDeck Mali port](https://github.com/DavidCimo/droiddeck-mali) (in the test build, turned on in Setup) |
 | **Phone's own driver** (PowerVR, Xclipse fallback) | Steam and games use the phone's own Vulkan driver through libhybris | [DroidDeck PR #570](https://github.com/Droid-Deck/DroidDeck/pull/570) |
 | **Mali bridge** | A Vulkan bridge to the phone's own Mali driver | [DroidDeck PR #517](https://github.com/Droid-Deck/DroidDeck/pull/517) |
 

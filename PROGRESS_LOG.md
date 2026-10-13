@@ -2,6 +2,10 @@
 
 Newest first. Devices only; testers are not named here.
 
+## 2026-10-13 — Test build 1c758abd: Mali (Venus) route
+- Added David Cimo's Venus route (DavidCimo/droiddeck-mali, from DroidDeck 0.3.1 + his 12 commits) as a Setup option "Mali (Venus)"; Auto stays on PanVK. Venus component (Mesa 26.2.4 Venus ICD, virglrenderer 1.3.0 render server, Mali compatibility layer) and gamescope p15 built in CI and pinned by sha.
+- Not yet run on a phone in this build.
+
 ## 2026-10-13 — Test build c359eac6
 - Mali: the phone's own driver always draws the screen under Auto (no driver-file lookup).
 - gamescope explicit sync off on kernels older than 6.6 and on Mali (patched gamescope `gamescope-3.16.29-p14-nonadreno`, released here).
