@@ -4,20 +4,20 @@ limit ("MESA: failed to import sync file 'Too many open files'", then "kbase: fa
 duplicate dma-buf"), after which the GPU stalls; on a Mali-G925 Steam froze after ~10 minutes.
 
 kbase_cpu_sync_import_sync_file() dup()s the sync_file into a heap "waiter" kept in
-ks->pending_data, and kbase_sync_file_waiter_free() closes it. However, every other place that
-drops the payload just sets pending_data/pending_wait to NULL:
-  - the CPU wait finishing successfully (the WSI path: import a dma-buf's sync_file, wait on it,
-    destroy the sync — once per frame),
-  - vk_sync signal and reset,
-  - re-arming with panvk_kbase_sync_set_pending(),
-  - moving one sync into another (the destination's payload is overwritten).
-Once pending_data is NULL, finish() can no longer find the waiter, so the dup()'d fd and the
-waiter struct leak. Free the sync-file waiter at each of those points (it only acts when the
-payload is a sync-file waiter, so GPU-queue payloads are untouched).
+ks->pending_data, and kbase_sync_file_waiter_free() closes it. Places that drop the payload by
+just setting pending_data to NULL (or overwriting it) lose the waiter, so the dup()'d fd and the
+struct leak. In zenithblue's tree that is the CPU wait finishing (the WSI path: import a dma-buf's
+sync_file, wait on it, destroy the sync — once per frame), signal, reset, re-arming with
+panvk_kbase_sync_set_pending() and the destination of a move; wonderkast02's tree already frees
+in all of those except signal.
 
-No-op (exit 0) on trees without this sync code (e.g. the JM / G720 forks).
+This frees the sync-file waiter before every such drop that does not already do so (it only acts
+when the payload is a sync-file waiter, so GPU-queue payloads are untouched). The moved-from side
+of a move keeps its NULL assignment: its payload now belongs to the destination.
+
+No-op (exit 0) on trees without this sync code (e.g. the JM fork).
 Usage: panvk_kbase_sync_file_fd_leak.py <mesa-tree>"""
-import pathlib, sys
+import pathlib, re, sys
 
 tree = pathlib.Path(sys.argv[1])
 p = tree / "src/panfrost/vulkan/panvk_physical_device.c"
@@ -27,75 +27,40 @@ if "kbase_sync_file_wait_func" not in s:
 if "BL_SYNC_FILE_FD_LEAK" in s:
     print("already applied"); sys.exit(0)
 
-def sub(old, new, what, count=1):
-    global s
-    n = s.count(old)
-    if n != count:
-        sys.exit(f"{what}: expected {count} match(es), found {n}")
-    s = s.replace(old, new)
+lines = s.split("\n")
 
-TAG = "   /* BL_SYNC_FILE_FD_LEAK: close a sync-file payload before dropping it. */\n"
+# Skip the body of kbase_sync_file_waiter_free() itself (it is the one place that may NULL it).
+free_def = next((i for i, l in enumerate(lines)
+                 if l.startswith("kbase_sync_file_waiter_free(") and not l.rstrip().endswith(";")),
+                None)
+if free_def is None:
+    sys.exit("kbase_sync_file_waiter_free() definition not found")
+free_end = next(i for i in range(free_def, len(lines)) if lines[i] == "}")
+decl = next((i for i, l in enumerate(lines)
+             if l.startswith("kbase_sync_file_waiter_free(") and l.rstrip().endswith(";")), free_def)
 
-# signal() and reset(): both drop the payload with the mutex held.
-sub("""   ks->state = KBASE_CPU_SYNC_SIGNALED;
-   ks->result = VK_SUCCESS;
-   ks->pending_data = NULL;
-   ks->pending_wait = NULL;
-   u_cnd_monotonic_broadcast(&ks->cond);""",
-    """   ks->state = KBASE_CPU_SYNC_SIGNALED;
-   ks->result = VK_SUCCESS;
-""" + TAG + """   kbase_sync_file_waiter_free(ks);
-   ks->pending_data = NULL;
-   ks->pending_wait = NULL;
-   u_cnd_monotonic_broadcast(&ks->cond);""", "signal")
+drop = re.compile(r"^(\s*)(ks|ks_dst)->pending_data = (NULL|data|ks_src->pending_data);")
+fixed = []
+out = []
+for i, l in enumerate(lines):
+    m = drop.match(l)
+    if m and not (free_def <= i <= free_end):
+        indent, var, val = m.groups()
+        # Already freed just above (wonderkast02 has most of these)?
+        if not any("kbase_sync_file_waiter_free(" in x for x in lines[max(0, i - 6):i]):
+            if i < decl:  # kbase_cpu_sync_init(): a fresh sync, nothing to free yet
+                out.append(l)
+                continue
+            out.append(f"{indent}/* BL_SYNC_FILE_FD_LEAK: close a sync-file payload before dropping it. */")
+            if val == "data":
+                out.append(f"{indent}if ({var}->pending_data != data)")
+                out.append(f"{indent}   kbase_sync_file_waiter_free({var});")
+            else:
+                out.append(f"{indent}kbase_sync_file_waiter_free({var});")
+            fixed.append(i + 1)
+    out.append(l)
 
-sub("""   ks->state = KBASE_CPU_SYNC_RESET;
-   ks->result = VK_SUCCESS;
-   ks->pending_data = NULL;
-   ks->pending_wait = NULL;
-   memset(ks->targets, 0, sizeof(ks->targets));""",
-    """   ks->state = KBASE_CPU_SYNC_RESET;
-   ks->result = VK_SUCCESS;
-""" + TAG + """   kbase_sync_file_waiter_free(ks);
-   ks->pending_data = NULL;
-   ks->pending_wait = NULL;
-   memset(ks->targets, 0, sizeof(ks->targets));""", "reset")
-
-# set_pending(): a new payload replaces the old one.
-sub("""   assert(ks->state != KBASE_CPU_SYNC_WAITING);
-   ks->pending_data = data;
-   ks->pending_wait = wait;""",
-    """   assert(ks->state != KBASE_CPU_SYNC_WAITING);
-""" + TAG + """   if (ks->pending_data != data)
-      kbase_sync_file_waiter_free(ks);
-   ks->pending_data = data;
-   ks->pending_wait = wait;""", "set_pending")
-
-# CPU wait finished: nothing else touched the payload while WAITING (set_pending asserts it).
-sub("""         if (result == VK_SUCCESS) {
-            ks->state = KBASE_CPU_SYNC_SIGNALED;
-            ks->pending_data = NULL;
-            ks->pending_wait = NULL;""",
-    """         if (result == VK_SUCCESS) {
-            ks->state = KBASE_CPU_SYNC_SIGNALED;
-""" + TAG.replace("   /*", "            /*") + """            kbase_sync_file_waiter_free(ks);
-            ks->pending_data = NULL;
-            ks->pending_wait = NULL;""", "wait completion")
-
-# move(): the destination's old payload is overwritten.
-sub("""   ks_dst->state = ks_src->state;
-   ks_dst->result = ks_src->result;
-   ks_dst->pending_data = ks_src->pending_data;""",
-    """""" + TAG + """   kbase_sync_file_waiter_free(ks_dst);
-   ks_dst->state = ks_src->state;
-   ks_dst->result = ks_src->result;
-   ks_dst->pending_data = ks_src->pending_data;""", "move")
-
-# Every call above must come after the forward declaration of kbase_sync_file_waiter_free().
-decl = s.find("kbase_sync_file_waiter_free(struct kbase_cpu_sync *ks);")
-first = s.find("BL_SYNC_FILE_FD_LEAK")
-if decl < 0 or decl > first:
-    sys.exit("kbase_sync_file_waiter_free is not declared before its new callers")
-
-p.write_text(s)
-print("applied: sync-file waiter fds are closed whenever the payload is dropped")
+if not fixed:
+    print("every payload drop already frees the sync-file waiter: nothing to do"); sys.exit(0)
+p.write_text("\n".join(out))
+print(f"applied: sync-file waiter freed before {len(fixed)} payload drop(s) (lines {fixed})")
