@@ -14,6 +14,7 @@ Newest first. Devices only; testers are not named here.
   - a Zink probe with llvmpipe fallback
   - the bridge draw path
   - Moonlighter on Venus
+- Discord: the test builds and these updates are announced in the DroidDeck "Crash on mali devices" thread by DroidDeck-Bot (`announce.yml`): 7464bd76, 3ef49faa, the Mali GPU-drawing warning, and the round-4 "being fixed" notice.
 
 ## 2026-10-13 — Test build 3ef49faa
 - Venus: the Mali compatibility layer runs in every process except gamescope, so Zink in Steam and Xwayland gets nullDescriptor. If it is still missing, GL falls back to llvmpipe. Null texel-buffer stand-ins added. Component `venus-proto13-55b30fbf`.
