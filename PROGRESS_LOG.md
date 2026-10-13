@@ -2,6 +2,17 @@
 
 Newest first. Devices only; testers are not named here.
 
+## 2026-10-13 — Overnight results on 1c758abd
+- **Mali games run (PanVK-kbase, phone's own driver for the screen):**
+  - Lenovo Legion Tab (G615): Hollow Knight at ~35–45 fps
+  - Motorola Edge 60 (G615): Castle Crashers at up to ~60 fps, with graphics glitches and no game sound
+  - Xiaomi 14T Pro (G720): Hades runs, with Steam sound
+- **Xiaomi 15T Pro (G925):** Steam runs, then freezes after ~10 min. The log shows "Too many open files" in PanVK's sync-file import, which points to a file-descriptor leak.
+- **Mali (Venus):** fails on G57, G615 and G720. gamescope reports "Missing required extension: VK_EXT_robustness2" right after it picks "Virtio-GPU Venus (Mali-…)". The Venus server and guest driver themselves work.
+- **Mali bridge switch:** has no effect while a PanVK pair is in use ("in use: false").
+- **Xiaomi 14T Pro:** the PanVK G720 (wonderkast02) pair stops at "Waiting for first frame".
+- **Older builds:** logs from them showed the explicit-sync abort that was fixed in c359eac6.
+
 ## 2026-10-13 — Test build 1c758abd: Mali (Venus) route
 - Added David Cimo's Venus route (DavidCimo/droiddeck-mali, from DroidDeck 0.3.1 + his 12 commits) as a Setup option "Mali (Venus)"; Auto stays on PanVK. Venus component (Mesa 26.2.4 Venus ICD, virglrenderer 1.3.0 render server, Mali compatibility layer) and gamescope p15 built in CI and pinned by sha.
 - Not yet run on a phone in this build.
