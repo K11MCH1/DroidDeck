@@ -2,6 +2,13 @@
 
 Newest first. Devices only; testers are not named here.
 
+## 2026-10-14 — Test build 42fdbfe8
+- **vkbridge server:** every command buffer a device hands out is tracked. Begin, End (replay) and QueueSubmit refuse unknown or freed ones (logged, VK_ERROR_DEVICE_LOST). A per-request SIGSEGV/SIGBUS guard cuts off only the faulting client, so the app survives. The pipeline cache path is copied (it pointed at a freed JNI string). The root cause of the Mali vkBeginCommandBuffer crash is not confirmed.
+- **Venus:** DROIDDECK_MALI_COMPAT_TRACE=1 in the layer. A failed glprobe adds a traced run, Mesa debug output and vulkaninfo --summary. Venus component venus-proto13-e40cd361.
+- **PowerVR:** mangoapp draws with llvmpipe (it crash-looped on Zink).
+- **Setup:** Xclipse gets its own support line.
+- APK run 38502440987, signed via test-apk-release run 38503316327 (signer b241ea7d). Not yet run on a phone.
+
 ## 2026-10-13 — ab545368 test results (15 logs, 11 devices)
 - **Pixel 10 Pro XL (PowerVR):** fixed. Steam UI boots, no drmPrimeFDToHandle errors; Brotato 60 fps, Slay the Spire 40+. Megabonk launches with no picture; Steam UI ~15 fps (software); mangoapp crash-loops 5x ("zink: could not create swapchain", GLXBadCurrentWindow).
 - **Mali bridge (Edge 60 G615, Tab S11 G925):** the BInit fix works (non-exportable modifiers tried, gamescope/Xwayland/Steam start). Then SIGSEGV at addr 0x10 in the app process: libGLES_mali inside vkBeginCommandBuffer, replayed from vkb_sv_vkEndCommandBuffer, about 150 ms after the Steam client's device is created (it takes the shared-memory present fallback). Kills the whole app. Next build: fix plus fallback.

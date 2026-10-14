@@ -6,13 +6,13 @@ Experimental community testing. Not an official DroidDeck release.
 - **Test build (APK):** [DroidDeck test build: non-Snapdragon](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases/tag/droiddeck-test-non-adreno-all), built from the branch [`test/non-adreno-all`](https://github.com/Droid-Deck/DroidDeck/tree/test/non-adreno-all) of [DroidDeck](https://github.com/Droid-Deck/DroidDeck)
 - **Drivers:** the [Releases page](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases) has one release per driver, replaced in place on every rebuild
 - **Progress and test results:** [PROGRESS_LOG.md](PROGRESS_LOG.md) and the test build's release notes
-- **Newest test build: `ab545368`.**
-  - The Pixel 10 (PowerVR) regression is fixed (confirmed): our build now matches #570's GPU picture hand-off.
-  - The performance overlay starts even when the phone hides its temperature sensors.
-  - A Mali bridge fix for picture creation (confirmed).
-  - Steam's OpenGL on Venus tries four settings before using software.
-  - S24 FE crash logging.
+- **Newest test build: `42fdbfe8`.**
+  - Mali bridge: a safety net so a driver crash no longer closes the whole app.
+  - Logging for why Steam's OpenGL fails on Venus on the G615/G610.
+  - The performance overlay no longer crash-loops on PowerVR (Pixel 10).
+  - Xclipse is no longer labelled "System PowerVR driver" in Setup.
   - Earlier builds added:
+    - `ab545368`: the Pixel 10 (PowerVR) regression fix, bridge picture creation, more Venus OpenGL settings, the overlay thermal fix and S24 FE crash logging
     - `48d2d52d`: the bridge memory fix, the Venus server crash fix, and OpenAL auto-install
     - `8397965d`: "GPU drawing" hidden on Mali, plus Venus screen fixes
     - `3ef49faa`: Steam OpenGL on Venus
@@ -29,7 +29,7 @@ Experimental community testing. Not an official DroidDeck release.
   - **Steam on Venus opens on every Mali tried:** Galaxy A15 and Realme Narzo 60 (G57), Motorola Edge 60 (G615), Redmi Note 13 Pro+ (G610) and Galaxy Tab S11 (G925). Steam's OpenGL runs on the GPU on the G925; on the G615/G610 it's still software (slow).
   - **Pixel 10 Pro XL (PowerVR):** Steam opens again on `ab545368`. Brotato runs at 60 fps and Slay the Spire at 40+.
   - **Mali bridge:** gets past picture creation on `ab545368`, then the whole app closes when Steam starts drawing (Edge 60 and Tab S11). Being fixed.
-  - **Being fixed in the next build (building now):** the bridge crash plus a safe fallback, Venus OpenGL logging on the G615/G610, the performance overlay crash on PowerVR, and the wrong "PowerVR" label on Xclipse.
+  - **Waiting on retests of `42fdbfe8`:** the bridge on the Edge 60 and Tab S11, Venus on the G615/G610 (new logging), and the Pixel 10 overlay.
   - Full list in the test build's release notes.
 - **Get the test build only from the link above.** Other copies (for example on file-sharing sites) are not ours.
 
