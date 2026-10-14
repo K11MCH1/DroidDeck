@@ -2,6 +2,14 @@
 
 Newest first. Devices only; testers are not named here.
 
+## 2026-10-13 — ab545368 test results (15 logs, 11 devices)
+- **Pixel 10 Pro XL (PowerVR):** fixed. Steam UI boots, no drmPrimeFDToHandle errors; Brotato 60 fps, Slay the Spire 40+. Megabonk launches with no picture; Steam UI ~15 fps (software); mangoapp crash-loops 5x ("zink: could not create swapchain", GLXBadCurrentWindow).
+- **Mali bridge (Edge 60 G615, Tab S11 G925):** the BInit fix works (non-exportable modifiers tried, gamescope/Xwayland/Steam start). Then SIGSEGV at addr 0x10 in the app process: libGLES_mali inside vkBeginCommandBuffer, replayed from vkb_sv_vkEndCommandBuffer, about 150 ms after the Steam client's device is created (it takes the shared-memory present fallback). Kills the whole app. Next build: fix plus fallback.
+- **Venus OpenGL:** OK on G925 (glprobe passes, layer adds robustBufferAccess2/nullDescriptor). Fails on G615 and G610 in all 5 variants ("failed to load driver: zink"; the layer never loads inside glprobe), so llvmpipe. Next build: verbose zink probe.
+- **PanVK:** G610 (Redmi Note 13 Pro+) CSF fatal error 0x88 → DEVICE_LOST after ~2 min. G68 (Tab S9 FE) Xwayland SIGSEGV in libgallium on its first dma-buf import. G615 (Redmi Note 14 Pro) Steam + a game, no crash.
+- **Venus G68 (Tab S9 FE):** virglrenderer abort "pthread_mutex_lock called on a destroyed mutex".
+- **App:** Setup labels Xclipse as "System PowerVR driver" (GpuInfo.kt supportText(context) lacks the Xclipse case). Next build.
+
 ## 2026-10-13 — Test build ab545368
 - **PowerVR regression:** tools/linuxfs/preload/drm.c now uses PR #570's current same-file check. The old one failed below kernel 6.10 when Android blocks the fallback, so every PowerVR dmabuf import returned EOPNOTSUPP.
 - **mangoapp:** gets an empty /sys/class/thermal when the phone hides it (it crashed 5x at start).

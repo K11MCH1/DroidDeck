@@ -7,9 +7,9 @@ Experimental community testing. Not an official DroidDeck release.
 - **Drivers:** the [Releases page](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases) has one release per driver, replaced in place on every rebuild
 - **Progress and test results:** [PROGRESS_LOG.md](PROGRESS_LOG.md) and the test build's release notes
 - **Newest test build: `ab545368`.**
-  - The Pixel 10 (PowerVR) regression is fixed: our build now matches #570's GPU picture hand-off.
+  - The Pixel 10 (PowerVR) regression is fixed (confirmed): our build now matches #570's GPU picture hand-off.
   - The performance overlay starts even when the phone hides its temperature sensors.
-  - A Mali bridge fix for picture creation.
+  - A Mali bridge fix for picture creation (confirmed).
   - Steam's OpenGL on Venus tries four settings before using software.
   - S24 FE crash logging.
   - Earlier builds added:
@@ -25,13 +25,11 @@ Experimental community testing. Not an official DroidDeck release.
     - Hollow Knight on a Lenovo Legion Tab (G615)
     - Celeste and Castle Crashers on a Motorola Edge 60 (G615), with picture glitches
     - Hades on a Xiaomi 14T Pro (G720)
-  - **Mali bridge:** creates images on the Edge 60 now. Drawing is still black, so it falls back to PanVK and Steam opens.
-  - **Samsung S24 FE (Xclipse):** games run on RADV. Monster Hunter Rise boots but crashes before its menu.
-  - **Steam on Venus opens on every Mali tried with `48d2d52d`:** Galaxy A15 and Realme Narzo 60 (G57), and Motorola Edge 60 (G615). On the G615 it's slow for now (software OpenGL).
-  - **Mali bridge:** passes all its self-tests on the Edge 60 (G615); Steam's screen program now stops while creating a picture.
-  - **Samsung S24 FE:** R.E.P.O. and Mouse P.I. run, then a new "IWaitable hung up" crash; logging is being added.
-  - **Pixel 10 Pro XL (PowerVR):** a regression in `48d2d52d` (it worked on #570), fixed in `ab545368`.
-  - **Waiting on retests of `ab545368`:** the Pixel 10, the bridge and Venus on the G615, and the S24 FE crash detail.
+  - **Samsung S24 FE (Xclipse):** games run on RADV. Monster Hunter Rise boots but crashes before its menu; R.E.P.O. and Mouse P.I. run, then an "IWaitable hung up" crash (logging added, log pending).
+  - **Steam on Venus opens on every Mali tried:** Galaxy A15 and Realme Narzo 60 (G57), Motorola Edge 60 (G615), Redmi Note 13 Pro+ (G610) and Galaxy Tab S11 (G925). Steam's OpenGL runs on the GPU on the G925; on the G615/G610 it's still software (slow).
+  - **Pixel 10 Pro XL (PowerVR):** Steam opens again on `ab545368`. Brotato runs at 60 fps and Slay the Spire at 40+.
+  - **Mali bridge:** gets past picture creation on `ab545368`, then the whole app closes when Steam starts drawing (Edge 60 and Tab S11). Being fixed.
+  - **Being fixed in the next build (building now):** the bridge crash plus a safe fallback, Venus OpenGL logging on the G615/G610, the performance overlay crash on PowerVR, and the wrong "PowerVR" label on Xclipse.
   - Full list in the test build's release notes.
 - **Get the test build only from the link above.** Other copies (for example on file-sharing sites) are not ours.
 
