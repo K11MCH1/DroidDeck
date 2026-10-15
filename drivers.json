@@ -7,14 +7,35 @@
     "source": "https://github.com/JimVulkan/radv-xclipse",
     "android": {
       "repo": "JimVulkan/radv-xclipse",
-      "asset": "radv-xclipse-.*\\.zip$"
+      "asset": "radv-xclipse-.*\\.zip$",
+      "tag": "v1.6.0-RC"
     },
     "build": {
       "driver": "radv",
       "src_repo": "JimVulkan/radv-xclipse",
-      "src_ref": "main"
+      "src_ref": "05b3092fcc9040852a8bff20d19dd8bbed31a1c7"
     },
-    "tag": "radv-xclipse"
+    "tag": "radv-xclipse",
+    "note": "The default RADV for Xclipse. Built from JimVulkan's v1.6.0-RC source (05b3092), paired with the author's v1.6.0-RC Android release. Kept as the default because testers measured the final v1.6.0 about 30% slower in FauxVkTest; the final v1.6.0 is the separate manual option RADV-Xclipse-upstream."
+  },
+  {
+    "id": "RADV-Xclipse-upstream",
+    "tag": "radv-xclipse-upstream",
+    "title": "RADV-Xclipse (upstream v1.6.0)",
+    "gpus": "Samsung Xclipse 920 / 530 / 940. Chips: Exynos 2200, Exynos 1480, Exynos 2400 / 2400e (940 is experimental). Phones: Galaxy S22 / S22+ / S22 Ultra (Exynos models), Galaxy A55, Galaxy S24 / S24+ (Exynos models), Galaxy S24 FE. Not the Snapdragon versions of these phones, and not Exynos 1580 (Xclipse 540).",
+    "author": "JimVulkan",
+    "source": "https://github.com/JimVulkan/radv-xclipse",
+    "android": {
+      "repo": "JimVulkan/radv-xclipse",
+      "asset": "radv-xclipse-.*\\.zip$",
+      "tag": "v.1.6.0"
+    },
+    "build": {
+      "driver": "radv",
+      "src_repo": "JimVulkan/radv-xclipse",
+      "src_ref": "v.1.6.0"
+    },
+    "note": "Manual option, not the default (the default is RADV-Xclipse, built from v1.6.0-RC). This is JimVulkan's final v1.6.0 (cd63891), both halves: tessellation and transform feedback fixes on every Xclipse, BC terrain-texture fix, less memory for BC7 and signed BC4/BC5. Testers saw Monster Hunter Rise reach its main menu on it, but about 30% lower FauxVkTest scores than v1.6.0-RC. In the Linux half the author's Android properties do not exist; use the environment variables instead: RADV_XCLIPSE_BC7SRGB_RGBA8=1 (exact sRGB BC7) and RADV_XCLIPSE_BCSNORM_EXACT=1 (exact signed BC4/BC5)."
   },
   {
     "id": "PanVK-Mali-kbase",
@@ -25,18 +46,19 @@
     "source": "https://github.com/zenithblue-oss/panvk-kbase-android",
     "android": {
       "repo": "zenithblue-oss/panvk-kbase-android",
-      "asset": "PanVK-Kbase-Android-.*\\.adpkg\\.zip$"
+      "asset": "PanVK-Kbase-Android-.*\\.adpkg\\.zip$",
+      "tag": "panvk-kbase-v0.1.0-rc3-lowmem"
     },
     "build": {
       "driver": "panvk",
       "src_repo": "zenithblue-oss/panvk-kbase-android",
-      "src_ref": "panvk-kbase-v0.1.0-rc3",
+      "src_ref": "panvk-kbase-v0.1.0-rc3-lowmem",
       "kind": "patchset",
       "profile": "g615-v11-csf",
       "kmds": "kbase",
       "build_android": false
     },
-    "note": "The Android half is the author's official RC3 build (device-tested). The Linux half is built here from the same RC3 tag; the author's own Linux build needs libSPIRV-Tools.so and was not device-tested, so it is not used."
+    "note": "Both halves are the author's RC3 lowmem (RC3 plus csf-v11/185: BC1 RGB and BC7 textures stored at 8 bpp, 25-33% less texture memory, slightly lower quality, not faster). PANVK_BC_AFRC=0 restores exact BC decoding. The Android half is the author's official build (device-tested by the author); the Linux half is built here from the same tag, because the author's own Linux build needs libSPIRV-Tools.so."
   },
   {
     "id": "PanVK-Mali-JM",
@@ -85,12 +107,12 @@
     "build": {
       "driver": "panvk",
       "src_repo": "GunaCharanTeja/panvk-kbase-android",
-      "src_ref": "main",
+      "src_ref": "g615-1.1.4-FC",
       "kind": "patchset",
       "profile": "g615-v11-csf",
       "kmds": "kbase"
     },
-    "note": "No official Android release exists yet; the Android half will be built here.",
+    "note": "Built from the author's 1.1.4-FC tag (RDR1 GPU-fault fixes, fewer GPU queue stalls, faster and smaller emulated BC textures, 8 MiB tiler heap chunks). The author's own Android release is for adrenotools/X11 apps; the Android half here is built from the same tag and patches as the Linux half.",
     "tag": "panvk-mali-g615"
   },
   {

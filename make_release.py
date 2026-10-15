@@ -10,8 +10,12 @@ d = next(x for x in json.load(open(os.path.join(os.path.dirname(os.path.abspath(
 os.makedirs(out_dir, exist_ok=True)
 
 def fetch_android(spec, dest):
-    """Newest release (pre-releases included) of spec['repo'] with an asset matching spec['asset']."""
-    rels = json.loads(subprocess.check_output(["gh", "api", f"repos/{spec['repo']}/releases?per_page=10"], text=True))
+    """The release spec['tag'] when pinned, else the newest release (pre-releases included) of
+    spec['repo'], with an asset matching spec['asset']."""
+    if spec.get("tag"):
+        rels = [json.loads(subprocess.check_output(["gh", "api", f"repos/{spec['repo']}/releases/tags/{spec['tag']}"], text=True))]
+    else:
+        rels = json.loads(subprocess.check_output(["gh", "api", f"repos/{spec['repo']}/releases?per_page=10"], text=True))
     for rel in rels:
         for a in rel["assets"]:
             if re.search(spec["asset"], a["name"]):
@@ -30,6 +34,8 @@ if local_android:
 elif d.get("android"):
     tmp = tempfile.mkdtemp()
     path, android_tag = fetch_android(d["android"], tmp)
+    if not path and d["android"].get("tag"):
+        sys.exit(f"pinned Android release {d['android']['tag']} has no asset matching {d['android']['asset']}")
 if path:
     shutil.copy(path, os.path.join(out_dir, f"{did}-Android.zip"))
     with zipfile.ZipFile(os.path.join(out_dir, f"{did}-Pair.zip"), "w", zipfile.ZIP_DEFLATED) as z:
