@@ -241,6 +241,9 @@ apply_panvk_fixes(){
 	python3 "$repo/patches/panvk_kbase_drm_node.py" "$mesa" || die "panvk_kbase_drm_node.py failed"
 	grep -q BL_DRM_STANDIN "$mesa/src/panfrost/vulkan/panvk_physical_device.c" || die "DRM-node fix did not land"
 	python3 "$repo/patches/panvk_kbase_sync_file_fd_leak.py" "$mesa" || die "panvk_kbase_sync_file_fd_leak.py failed"
+	python3 "$repo/patches/panvk_csf_provoking_vertex_u64.py" "$mesa" || die "panvk_csf_provoking_vertex_u64.py failed"
+	! grep -qE 'uint32_t[[:space:]]+fn_addr' "$mesa/src/panfrost/vulkan/csf/panvk_vX_cmd_draw.c" 2>/dev/null \
+		|| die "provoking-vertex address fix did not land"
 }
 
 build(){

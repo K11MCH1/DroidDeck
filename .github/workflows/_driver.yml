@@ -27,7 +27,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ninja-build unzip flex bison cmake glslang-tools curl pkg-config \
             gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu \
-            python3-pip zip patch tar zstd xz-utils libexpat1-dev zlib1g-dev
+            python3-pip zip patch tar zstd xz-utils libexpat1-dev zlib1g-dev patchelf
           if [ "${{ inputs.driver }}" = panvk ]; then
             # Host-only: mesa_clc / panfrost_compile compile PanVK's OpenCL kernels at build time.
             sudo apt-get install -y llvm-18-dev libclang-18-dev libclang-cpp18-dev clang-18 \
@@ -36,6 +36,10 @@ jobs:
             sudo ln -sf /usr/bin/llvm-config-18 /usr/local/bin/llvm-config
           fi
           pip3 install --break-system-packages 'meson>=1.5' mako pyyaml packaging ply pycparser
+      # Libraries an Android driver half may need beside it (libdrm_full, zlib, zstd, libc++_shared);
+      # make_release.py ships the ones the driver actually NEEDs.
+      - name: Build Android dependency libraries
+        run: ANDROID_NDK_HOME="$ANDROID_NDK_LATEST_HOME" ./tools/build_android_deps.sh android_deps
       - name: Build the Linux half
         env:
           DRIVER: ${{ inputs.driver }}
@@ -60,6 +64,10 @@ jobs:
           rm -rf "$a" && git clone -q "https://github.com/${{ inputs.src_repo }}.git" "$a"
           git -C "$a" checkout -q "${{ inputs.src_ref }}"
           (cd "$a" && ./scripts/fetch-mesa.sh "$a/work" && ./scripts/apply-patches.sh --profile "${{ inputs.profile }}" --mesa "$a/work/mesa")
+          python3 patches/panvk_csf_provoking_vertex_u64.py "$a/work/mesa"
+          # Link against our full libdrm (SONAME libdrm_full.so) instead of the project's libdrm.so
+          # shim, so the vendor libdrm.so cannot shadow it at load time.
+          cp android_deps/libdrm_full.so "$a/shims/libdrm.so"
           # Same recipe as the project's own CI (build-g615-panvk.yml): its android.toml cross file
           # and its prebuilt Android shims (libdrm, xcb) under shims/.
           export ANDROID_NDK_HOME="$ANDROID_NDK_LATEST_HOME" MESON_WORKING_DIR="$a"

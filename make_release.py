@@ -38,6 +38,10 @@ elif d.get("android"):
         sys.exit(f"pinned Android release {d['android']['tag']} has no asset matching {d['android']['asset']}")
 if path:
     shutil.copy(path, os.path.join(out_dir, f"{did}-Android.zip"))
+    path = os.path.join(out_dir, f"{did}-Android.zip")
+    # Ship every non-system library the Android driver needs beside it (tools/bundle_android_deps.py).
+    subprocess.check_call([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools", "bundle_android_deps.py"),
+                           path, os.environ.get("ANDROID_DEPS", "android_deps")])
     with zipfile.ZipFile(os.path.join(out_dir, f"{did}-Pair.zip"), "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("manifest.json", json.dumps({
             "package": d["title"],
@@ -56,6 +60,16 @@ android_line = (f"- **Android half** (`{did}-Android.zip`): built here from the 
                 if built_here else
                 f"- **Android half** (`{did}-Android.zip`): the author's official release **{android_tag}**, unchanged. It draws DroidDeck's screen (display slot)."
                 if android_tag else "- **Android half:** not available yet (the author has no Android release); it will be built here.")
+extra_libs = []
+if path:
+    with zipfile.ZipFile(path) as z:
+        lib_name = json.loads(z.read("meta.json")).get("libraryName", "") if "meta.json" in z.namelist() else ""
+        extra_libs = sorted(os.path.basename(n) for n in z.namelist()
+                            if ".so" in os.path.basename(n) and os.path.basename(n) != lib_name)
+if extra_libs:
+    android_line += (f"\n- **Shipped beside the Android driver:** {', '.join(extra_libs)} (it needs them and Android does not provide them"
+                     + ("; libdrm is renamed libdrm_full.so so the phone's own libdrm.so cannot shadow it" if "libdrm_full.so" in extra_libs else "")
+                     + ").")
 pair_line = (f"- **Pair** (`{did}-Pair.zip`): both halves in one zip, in DroidDeck's driver-bundle layout."
              if android_tag else "- **Pair:** comes when the Android half is ready.")
 notes = f"""# {d['title']} for DroidDeck (test)

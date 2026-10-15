@@ -89,7 +89,9 @@ Report results with **Setup > Share logs** in the DroidDeck Discord testing thre
 
 Why two RADV builds: testers measured the final v1.6.0 about 30% slower in FauxVkTest than v1.6.0-RC, though Monster Hunter Rise reaches its menu on it. So v1.6.0-RC stays the default and v1.6.0 is a manual pick. In the Linux half the author's `setprop` switches do not exist; use `RADV_XCLIPSE_BC7SRGB_RGBA8=1` and `RADV_XCLIPSE_BCSNORM_EXACT=1` instead.
 
-Every PanVK Linux half also carries this repo's two fixes: the kbase device shown as a DRM node (`patches/panvk_kbase_drm_node.py`) and the per-frame file-descriptor leak fix (`patches/panvk_kbase_sync_file_fd_leak.py`; nothing to fix in the JM source).
+Every PanVK Linux half also carries this repo's fixes: the kbase device shown as a DRM node (`patches/panvk_kbase_drm_node.py`), the per-frame file-descriptor leak fix (`patches/panvk_kbase_sync_file_fd_leak.py`; nothing to fix in the JM source) and, on CSF Mali (G610 and newer), the provoking-vertex address fix (`patches/panvk_csf_provoking_vertex_u64.py`: a 64-bit GPU address was cut to 32 bits, a GPU fault that stopped Steam's interface). The G615 / G710 Android halves built here carry it too.
+
+Every Android half now ships the libraries its driver needs and Android does not provide (for example libdrm, zlib, zstd, libc++). Without them DroidDeck's screen silently fell back to the phone's own Mali driver. libdrm ships as `libdrm_full.so` because the phone's own `libdrm.so` would otherwise be used instead and lacks a function the driver needs. For the authors' own Android builds only the library list of the driver file is changed (libdrm.so to libdrm_full.so), never its code.
 
 ## Components
 
@@ -146,6 +148,10 @@ All driver and graphics work belongs to its authors. This repo only rebuilds the
 - **FristOneRR PanVK:** [FristOneRR](https://github.com/FristOneRR/FristOneRR-Panvk-Driver) ([source](https://github.com/FristOneRR-Admin/FristOneRR-Panvk-Source)), with work FristOneRR credits to Noysz, mexicanbr0auth, LukeValen and BossDrk
 - **PanVK G720:** [wonderkast02](https://github.com/wonderkast02/panvk-g720-kbase-csf)
 - **Device builds:** [faux123](https://github.com/faux123) for the Retroid Pocket 4 Pro, GameForce Ace and Anbernic RG556
+
+**Fixes borrowed into our driver builds**
+- **CSF provoking-vertex address fix** (`patches/panvk_csf_provoking_vertex_u64.py`, in every CSF PanVK build): found and proven on a Mali-G720 by [emirvapur11](https://github.com/emir34-34) in [emir34-34/DroidDeck commit 8f18a5ad](https://github.com/emir34-34/DroidDeck/commit/8f18a5ad) (repo GPL-3.0); port and write-up by [ryanistr](https://github.com/ryanistr) in [ryanistr/DroidDeck-Mali](https://github.com/ryanistr/DroidDeck-Mali/blob/main/tools/panvk-g57/patches/0004-csf-fix-provoking-vertex-fn-address-truncation.patch) (GPL-3.0). The change itself is a one-line Mesa (MIT) fix, matching upstream Mesa.
+- **Android halves ship the libraries they need, with libdrm renamed libdrm_full.so** (`tools/build_android_deps.sh`, `tools/bundle_android_deps.py`): finding and on-device measurement by [ryanistr](https://github.com/ryanistr) in [ryanistr/DroidDeck-Mali](https://github.com/ryanistr/DroidDeck-Mali/blob/main/docs/development/panvk-mali-g77-bringup.md) (GPL-3.0), section 16. Shipped libraries: [libdrm](https://gitlab.freedesktop.org/mesa/drm) (MIT), [zlib](https://github.com/madler/zlib) (zlib license), [zstd](https://github.com/facebook/zstd) (BSD), libc++ from the Android NDK (Apache-2.0 with LLVM exception).
 
 **Routes in the DroidDeck test build**
 - **Mali (Venus):** [David Cimo](https://github.com/DavidCimo), [DavidCimo/droiddeck-mali](https://github.com/DavidCimo/droiddeck-mali)
