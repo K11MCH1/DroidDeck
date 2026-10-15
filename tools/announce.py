@@ -26,8 +26,12 @@ embed = {
     "description": text + f"\n\n**Download:** {rel['url']}\nSend logs with Setup → Share logs.",
     "color": 0x2B7FFF,
 }
-body = json.dumps({"username": "DroidDeck-Bot", "embeds": [embed],
-                   "allowed_mentions": {"parse": []}}).encode()
+# MENTIONS: comma-separated Discord user ids to @ in the message text (mentions inside an embed never notify).
+users = [u.strip() for u in os.environ.get("MENTIONS", "").split(",") if u.strip().isdigit()]
+payload = {"username": "DroidDeck-Bot", "embeds": [embed], "allowed_mentions": {"parse": [], "users": users}}
+if users:
+    payload["content"] = " ".join(f"<@{u}>" for u in users)
+body = json.dumps(payload).encode()
 url = os.environ["DISCORD_WEBHOOK"] + f"?thread_id={os.environ['DISCORD_THREAD_ID']}&wait=true"
 req = urllib.request.Request(url, data=body, method="POST",
                              headers={"Content-Type": "application/json", "User-Agent": "droiddeck-nonadreno-drivers"})
