@@ -2,6 +2,14 @@
 
 Newest first. Devices only; testers are not named here.
 
+## 2026-10-15 — Drivers rebuilt on newer upstreams (CI only, not device-tested)
+- **New manual option `radv-xclipse-upstream`:** JimVulkan's final v1.6.0, both halves (tessellation and transform feedback fixes, BC terrain fix, less BC texture memory). `radv-xclipse` stays the default on v1.6.0-RC, unchanged, because testers measured v1.6.0 about 30% slower.
+- **`panvk-mali-kbase`:** zenithblue RC3 lowmem (BC1 RGB and BC7 textures in 25-33% less memory, slightly lower quality, not faster). The three faux123 pairs take this Linux half and faux123's new Android builds (RP4 Pro v0.17.0, Ace v0.40.0, RG556 v0.16.0: float blending no longer advertised where the GPU can't do it).
+- **`panvk-mali-g615`:** GunaCharanTeja 1.1.4-FC (Red Dead Redemption GPU-fault fixes, fewer GPU queue stalls, faster and smaller emulated BC textures).
+- Unchanged (no newer source): `panvk-mali-jm`, `panvk-mali-g720`, `panvk-mali-g710` (the G610/G710 profile uses none of the new patches).
+- Sources and Android releases are now pinned per driver, so a rebuild cannot silently pick up a newer upstream.
+- Redmi Note 13 Pro+ (G610) PanVK fault: a GPU "shareability" memory fault, then the GPU queues time out. Neither upstream has a fix that matches it yet.
+
 ## 2026-10-14 — Test build 42fdbfe8
 - **vkbridge server:** every command buffer a device hands out is tracked. Begin, End (replay) and QueueSubmit refuse unknown or freed ones (logged, VK_ERROR_DEVICE_LOST). A per-request SIGSEGV/SIGBUS guard cuts off only the faulting client, so the app survives. The pipeline cache path is copied (it pointed at a freed JNI string). The root cause of the Mali vkBeginCommandBuffer crash is not confirmed.
 - **Venus:** DROIDDECK_MALI_COMPAT_TRACE=1 in the layer. A failed glprobe adds a traced run, Mesa debug output and vulkaninfo --summary. Venus component venus-proto13-e40cd361.
