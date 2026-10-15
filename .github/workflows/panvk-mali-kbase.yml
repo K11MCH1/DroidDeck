@@ -4,7 +4,7 @@ on:
     inputs:
       src_ref:
         description: Source branch, tag or commit to build
-        default: panvk-kbase-v0.1.0-rc3
+        default: panvk-kbase-v0.1.0-rc3-lowmem
   push:
     branches: [main]
     paths: ['.github/workflows/panvk-mali-kbase.yml']
@@ -17,7 +17,7 @@ jobs:
       id: PanVK-Mali-kbase
       driver: panvk
       src_repo: zenithblue-oss/panvk-kbase-android
-      src_ref: ${{ inputs.src_ref || 'panvk-kbase-v0.1.0-rc3' }}
+      src_ref: ${{ inputs.src_ref || 'panvk-kbase-v0.1.0-rc3-lowmem' }}
       kind: patchset
       profile: 'g615-v11-csf'
       kmds: 'kbase'

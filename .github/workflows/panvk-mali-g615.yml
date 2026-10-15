@@ -4,7 +4,7 @@ on:
     inputs:
       src_ref:
         description: Source branch, tag or commit to build
-        default: main
+        default: g615-1.1.4-FC
   push:
     branches: [main]
     paths: ['.github/workflows/panvk-mali-g615.yml']
@@ -17,7 +17,7 @@ jobs:
       id: PanVK-Mali-G615
       driver: panvk
       src_repo: GunaCharanTeja/panvk-kbase-android
-      src_ref: ${{ inputs.src_ref || 'main' }}
+      src_ref: ${{ inputs.src_ref || 'g615-1.1.4-FC' }}
       kind: patchset
       profile: 'g615-v11-csf'
       kmds: 'kbase'
