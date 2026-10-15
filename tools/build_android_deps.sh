@@ -33,7 +33,9 @@ cmake -S "$work/zlib-1.3.1" -B "$work/zlib-build" -G Ninja -DCMAKE_TOOLCHAIN_FIL
 	-DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-$api -DCMAKE_BUILD_TYPE=Release \
 	-DZLIB_BUILD_EXAMPLES=OFF >/dev/null
 ninja -C "$work/zlib-build" zlib >/dev/null
-cp -L "$work/zlib-build/libz.so.1" "$out/libz.so.1"
+# The NDK toolchain builds unversioned sonames (libz.so would clash with Android's own zlib).
+cp -L "$(find "$work/zlib-build" -maxdepth 1 -name 'libz.so*' -type f | head -1)" "$out/libz.so.1"
+patchelf --set-soname libz.so.1 "$out/libz.so.1"
 
 # zstd (SONAME libzstd.so.1)
 fetch https://github.com/facebook/zstd/releases/download/v1.5.6/zstd-1.5.6.tar.gz \
@@ -43,7 +45,8 @@ cmake -S "$work/zstd-1.5.6/build/cmake" -B "$work/zstd-build" -G Ninja -DCMAKE_T
 	-DZSTD_BUILD_STATIC=OFF -DZSTD_BUILD_SHARED=ON -DZSTD_BUILD_PROGRAMS=OFF -DZSTD_BUILD_TESTS=OFF \
 	-DZSTD_LEGACY_SUPPORT=OFF >/dev/null
 ninja -C "$work/zstd-build" libzstd_shared >/dev/null
-cp -L "$(find "$work/zstd-build" -name 'libzstd.so.1' | head -1)" "$out/libzstd.so.1"
+cp -L "$(find "$work/zstd-build" -name 'libzstd.so*' -type f | head -1)" "$out/libzstd.so.1"
+patchelf --set-soname libzstd.so.1 "$out/libzstd.so.1"
 
 # libdrm, core library only, renamed to libdrm_full.so
 fetch https://dri.freedesktop.org/libdrm/libdrm-2.4.124.tar.xz \
@@ -64,7 +67,7 @@ meson setup "$work/drm-build" "$work/libdrm-2.4.124" --cross-file "$work/android
 	-Ddefault_library=shared $d -Dcairo-tests=disabled -Dman-pages=disabled -Dvalgrind=disabled \
 	-Dtests=false -Dinstall-test-programs=false -Dudev=false >/dev/null
 ninja -C "$work/drm-build" >/dev/null
-cp -L "$work/drm-build/libdrm.so.2" "$out/libdrm_full.so"
+cp -L "$(find "$work/drm-build" -maxdepth 1 -name 'libdrm.so*' -type f | head -1)" "$out/libdrm_full.so"
 patchelf --set-soname libdrm_full.so "$out/libdrm_full.so"
 
 # libc++_shared from the NDK, as is
@@ -73,6 +76,9 @@ cp "$ndk/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-and
 "$bin/llvm-strip" --strip-unneeded "$out"/libz.so.1 "$out"/libzstd.so.1 "$out"/libdrm_full.so
 for f in "$out"/*; do
 	echo "$(basename "$f"): SONAME $("$bin/llvm-readelf" -d "$f" | awk '/SONAME/{print $NF}') NEEDED $("$bin/llvm-readelf" -d "$f" | awk '/NEEDED/{print $NF}' | tr '\n' ' ')"
+done
+for f in libz.so.1 libzstd.so.1; do
+	"$bin/llvm-readelf" -d "$out/$f" | grep -q "SONAME.*\[$f\]" || { echo "$f has the wrong SONAME" >&2; exit 1; }
 done
 "$bin/llvm-readelf" -d "$out/libdrm_full.so" | grep -q 'SONAME.*\[libdrm_full.so\]' || { echo "libdrm_full.so has the wrong SONAME" >&2; exit 1; }
 "$bin/llvm-readelf" --dyn-syms -W "$out/libdrm_full.so" | grep -q ' drmCloseBufferHandle$' || { echo "libdrm_full.so lacks drmCloseBufferHandle" >&2; exit 1; }
