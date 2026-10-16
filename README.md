@@ -81,10 +81,10 @@ Report results with **Setup > Share logs** in the DroidDeck Discord testing thre
 | `radv-xclipse` (default) | JimVulkan v1.6.0-RC (`05b3092`) | author's v1.6.0-RC |
 | `radv-xclipse-upstream` (manual) | JimVulkan v.1.6.0 (`cd63891`): tessellation and transform feedback fixes, BC terrain fix, less BC7 / signed BC4/BC5 memory | author's v.1.6.0 |
 | `panvk-mali-kbase` | zenithblue RC3 lowmem (`0183fc4`): BC1 RGB and BC7 at 8 bpp, 25-33% less texture memory, slightly lower quality, not faster (`PANVK_BC_AFRC=0` = exact) | author's RC3 lowmem |
-| `panvk-mali-jm` | FristOneRR source beta 1.2.0 (`efd07ba`) | author's v2.0-rc1 |
+| `panvk-mali-jm` | FristOneRR source beta 1.2.0 (`efd07ba`) | author's v2.0-rc1, plus libdrm_full / zlib / zstd / libc++ beside it |
 | `panvk-mali-g720` | wonderkast02 g720-development (`ca16389`) | author's 0.1.0-beta.2 |
-| `panvk-mali-g615` | GunaCharanTeja 1.1.4-FC (`aa01eb0`): Red Dead Redemption GPU-fault fixes, fewer GPU queue stalls, faster and smaller emulated BC textures | built here from the same tag |
-| `panvk-mali-g710` | GunaCharanTeja `45071e8`, profile g610-v10-csf (newer upstream work is all in the v11 series this profile does not use) | built here from the same source |
+| `panvk-mali-g615` | GunaCharanTeja 1.1.4-FC (`aa01eb0`): Red Dead Redemption GPU-fault fixes, fewer GPU queue stalls, faster and smaller emulated BC textures | built here from the same tag, with libdrm_full beside it |
+| `panvk-mali-g710` | GunaCharanTeja `aa01eb0`, profile g610-v10-csf (same profile sources as `45071e8`: newer upstream work is all in the v11 series this profile does not use) | built here from the same source, with libdrm_full beside it |
 | `panvk-faux123-*` | our `panvk-mali-kbase` Linux half | faux123 RP4 Pro v0.17.0 / Ace v0.40.0 / RG556 v0.16.0 |
 
 Why two RADV builds: testers measured the final v1.6.0 about 30% slower in FauxVkTest than v1.6.0-RC, though Monster Hunter Rise reaches its menu on it. So v1.6.0-RC stays the default and v1.6.0 is a manual pick. In the Linux half the author's `setprop` switches do not exist; use `RADV_XCLIPSE_BC7SRGB_RGBA8=1` and `RADV_XCLIPSE_BCSNORM_EXACT=1` instead.

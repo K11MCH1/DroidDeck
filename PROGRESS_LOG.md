@@ -2,6 +2,10 @@
 
 Newest first. Devices only; testers are not named here.
 
+## 2026-10-16 — Two driver fixes from other Mali forks (CI only, not device-tested)
+- **Steam's interface freezing on CSF Mali (G610 and newer):** one address was cut to 32 bits, so the GPU faulted and every queue stopped. Fixed in every CSF PanVK build (kbase, G615, G710, G720, and the faux123 pairs through the kbase Linux half). Found and proven on a G720 by emirvapur11; port by ryanistr.
+- **Android halves that never loaded:** the JM, G615 and G710 Android drivers needed libraries Android does not have (libdrm, and for JM also zlib, zstd, libc++), so DroidDeck's screen silently used the phone's own Mali driver instead. They now ship those libraries, with libdrm renamed so the phone's own copy cannot take its place. Finding by ryanistr. On the JM pair this may change what draws the screen (see the test notes); the other Android halves needed nothing.
+
 ## 2026-10-15 — Drivers rebuilt on newer upstreams (CI only, not device-tested)
 - **New manual option `radv-xclipse-upstream`:** JimVulkan's final v1.6.0, both halves (tessellation and transform feedback fixes, BC terrain fix, less BC texture memory). `radv-xclipse` stays the default on v1.6.0-RC, unchanged, because testers measured v1.6.0 about 30% slower.
 - **`panvk-mali-kbase`:** zenithblue RC3 lowmem (BC1 RGB and BC7 textures in 25-33% less memory, slightly lower quality, not faster). The three faux123 pairs take this Linux half and faux123's new Android builds (RP4 Pro v0.17.0, Ace v0.40.0, RG556 v0.16.0: float blending no longer advertised where the GPU can't do it).
