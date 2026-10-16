@@ -6,12 +6,13 @@ Experimental community testing. Not an official DroidDeck release.
 - **Test build (APK):** [DroidDeck test build: non-Snapdragon](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases/tag/droiddeck-test-non-adreno-all), built from the branch [`test/non-adreno-all`](https://github.com/Droid-Deck/DroidDeck/tree/test/non-adreno-all) of [DroidDeck](https://github.com/Droid-Deck/DroidDeck)
 - **Drivers:** the [Releases page](https://github.com/The412Banner/droiddeck-nonadreno-drivers/releases) has one release per driver, replaced in place on every rebuild
 - **Progress and test results:** [PROGRESS_LOG.md](PROGRESS_LOG.md) and the test build's release notes
-- **Newest test build: `42fdbfe8`.**
-  - Mali bridge: a safety net so a driver crash no longer closes the whole app.
-  - Logging for why Steam's OpenGL fails on Venus on the G615/G610.
-  - The performance overlay no longer crash-loops on PowerVR (Pixel 10).
-  - Xclipse is no longer labelled "System PowerVR driver" in Setup.
+- **Newest test build: `c9ebb247`** (built on the newest DroidDeck main).
+  - Drivers: Charan's PanVK G615 1.1.4-FC, zenithblue's PanVK-kbase rc3-lowmem, a 64-bit GPU address fix in every newer-Mali driver, the libraries the JM/G615/G710 screen halves need, and RADV-Xclipse (upstream v1.6.0) as an extra option.
+  - The app shows each driver's real version and an **Update** button when a driver is rebuilt.
+  - Mali bridge falls back to PanVK when it can't share memory; Venus is skipped on Vulkan 1.1 drivers; both log why they fail.
+  - Steam no longer marks games as background (Android was closing them); a black screen now says why; logs show which screen driver really loaded.
   - Earlier builds added:
+    - `42fdbfe8`: the bridge safety net (a driver crash no longer closes the app), Venus OpenGL logging, the PowerVR overlay fix, the Xclipse label fix
     - `ab545368`: the Pixel 10 (PowerVR) regression fix, bridge picture creation, more Venus OpenGL settings, the overlay thermal fix and S24 FE crash logging
     - `48d2d52d`: the bridge memory fix, the Venus server crash fix, and OpenAL auto-install
     - `8397965d`: "GPU drawing" hidden on Mali, plus Venus screen fixes
@@ -28,8 +29,10 @@ Experimental community testing. Not an official DroidDeck release.
   - **Samsung S24 FE (Xclipse):** games run on RADV. Monster Hunter Rise boots but crashes before its menu; R.E.P.O. and Mouse P.I. run, then an "IWaitable hung up" crash (logging added, log pending).
   - **Steam on Venus opens on every Mali tried:** Galaxy A15 and Realme Narzo 60 (G57), Motorola Edge 60 (G615), Redmi Note 13 Pro+ (G610) and Galaxy Tab S11 (G925). Steam's OpenGL runs on the GPU on the G925; on the G615/G610 it's still software (slow).
   - **Pixel 10 Pro XL (PowerVR):** Steam opens again on `ab545368`. Brotato runs at 60 fps and Slay the Spire at 40+.
-  - **Mali bridge:** gets past picture creation on `ab545368`, then the whole app closes when Steam starts drawing (Edge 60 and Tab S11). Being fixed.
-  - **Waiting on retests of `42fdbfe8`:** the bridge on the Edge 60 and Tab S11, Venus on the G615/G610 (new logging), and the Pixel 10 overlay.
+  - **Mali bridge:** since `42fdbfe8` the app stays open when the driver crashes, but Steam still can't draw through the bridge (Tab S11). `c9ebb247` logs exactly what crashed it.
+  - **Galaxy A15 (G57):** Skyrim and Salt and Sanctuary play on `42fdbfe8`; desktop mode on PanVK without Venus is smooth (50–60 fps).
+  - **Black screen with a JM, G615 or G710 pair on `c9ebb247`?** Set Display driver to the phone's own (System) driver and send the log.
+  - **Waiting on retests of `c9ebb247`.**
   - Full list in the test build's release notes.
 - **Get the test build only from the link above.** Other copies (for example on file-sharing sites) are not ours.
 
@@ -152,6 +155,11 @@ All driver and graphics work belongs to its authors. This repo only rebuilds the
 **Fixes borrowed into our driver builds**
 - **CSF provoking-vertex address fix** (`patches/panvk_csf_provoking_vertex_u64.py`, in every CSF PanVK build): found and proven on a Mali-G720 by [emirvapur11](https://github.com/emir34-34) in [emir34-34/DroidDeck commit 8f18a5ad](https://github.com/emir34-34/DroidDeck/commit/8f18a5ad) (repo GPL-3.0); port and write-up by [ryanistr](https://github.com/ryanistr) in [ryanistr/DroidDeck-Mali](https://github.com/ryanistr/DroidDeck-Mali/blob/main/tools/panvk-g57/patches/0004-csf-fix-provoking-vertex-fn-address-truncation.patch) (GPL-3.0). The change itself is a one-line Mesa (MIT) fix, matching upstream Mesa.
 - **Android halves ship the libraries they need, with libdrm renamed libdrm_full.so** (`tools/build_android_deps.sh`, `tools/bundle_android_deps.py`): finding and on-device measurement by [ryanistr](https://github.com/ryanistr) in [ryanistr/DroidDeck-Mali](https://github.com/ryanistr/DroidDeck-Mali/blob/main/docs/development/panvk-mali-g77-bringup.md) (GPL-3.0), section 16. Shipped libraries: [libdrm](https://gitlab.freedesktop.org/mesa/drm) (MIT), [zlib](https://github.com/madler/zlib) (zlib license), [zstd](https://github.com/facebook/zstd) (BSD), libc++ from the Android NDK (Apache-2.0 with LLVM exception).
+
+**Fixes borrowed into the DroidDeck test build**
+- **Steam no longer marks games as background (oom_score_adj writes dropped):** idea from [jdmg28](https://github.com/jdmg28), [DroidDeck-Mali commit 6be00e00](https://github.com/jdmg28/DroidDeck-Mali/commit/6be00e00) (GPL-3.0)
+- **The reason for a black screen shown on the end screen (DD_PRESENT_FAULT):** based on [jdmg28's DroidDeck-Mali](https://github.com/jdmg28/DroidDeck-Mali/blob/arena/cd8ab18a-droiddeck-mali/app/src/main/cpp/waylandcomp/src/vk_present.c) (GPL-3.0)
+- **Logging which screen driver really loaded:** based on the AdrenoTools silent-fallback finding by [ryanistr](https://github.com/ryanistr), [bring-up notes section 16](https://github.com/ryanistr/DroidDeck-Mali/blob/main/docs/development/panvk-mali-g77-bringup.md) (GPL-3.0)
 
 **Routes in the DroidDeck test build**
 - **Mali (Venus):** [David Cimo](https://github.com/DavidCimo), [DavidCimo/droiddeck-mali](https://github.com/DavidCimo/droiddeck-mali)
