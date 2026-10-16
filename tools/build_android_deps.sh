@@ -78,9 +78,9 @@ for f in "$out"/*; do
 	echo "$(basename "$f"): SONAME $("$bin/llvm-readelf" -d "$f" | awk '/SONAME/{print $NF}') NEEDED $("$bin/llvm-readelf" -d "$f" | awk '/NEEDED/{print $NF}' | tr '\n' ' ')"
 done
 for f in libz.so.1 libzstd.so.1; do
-	"$bin/llvm-readelf" -d "$out/$f" | grep -q "SONAME.*\[$f\]" || { echo "$f has the wrong SONAME" >&2; exit 1; }
+	"$bin/llvm-readelf" -d "$out/$f" | grep -c "SONAME.*\[$f\]" >/dev/null || { echo "$f has the wrong SONAME" >&2; exit 1; }
 done
-"$bin/llvm-readelf" -d "$out/libdrm_full.so" | grep -q 'SONAME.*\[libdrm_full.so\]' || { echo "libdrm_full.so has the wrong SONAME" >&2; exit 1; }
-"$bin/llvm-readelf" --dyn-syms -W "$out/libdrm_full.so" | grep -q ' drmCloseBufferHandle$' || { echo "libdrm_full.so lacks drmCloseBufferHandle" >&2; exit 1; }
+"$bin/llvm-readelf" -d "$out/libdrm_full.so" | grep -c 'SONAME.*\[libdrm_full.so\]' >/dev/null || { echo "libdrm_full.so has the wrong SONAME" >&2; exit 1; }
+"$bin/llvm-readelf" --dyn-syms -W "$out/libdrm_full.so" | grep -c ' drmCloseBufferHandle$' >/dev/null || { echo "libdrm_full.so lacks drmCloseBufferHandle" >&2; exit 1; }
 (cd "$out" && sha256sum *)
 rm -rf "$work"
