@@ -2,6 +2,19 @@
 
 Newest first. Devices only; testers are not named here.
 
+## 2026-10-19 — Test build c5b25920 on DroidDeck 0.5.0 (CI only, not device-tested)
+From the 22 logs sent since c9ebb247 (14 testers):
+- **Auto could not see any open driver since 10-15:** the app read only the newest 15 releases of this repo, and the venus/gamescope component releases had pushed every PanVK pair and RADV-Xclipse past them. On every Mali, Auto then switched the Mali bridge on and cleared the Linux driver ("only Auto", "the Mali bridge is on until it is", RP4 Pro stopping at "Starting display and audio"). Fixed: this repo is read in one page of 100.
+- **Auto's stand-in for a missing pair:** Mali (Venus) where the APK carries it, the bridge otherwise, nothing on a driver below Vulkan 1.2. The Linux driver is kept, nothing changes when the list could not be read, and the stand-in goes off when a pair is installed. A bridge earlier builds left on under Auto is taken as Auto's.
+- **Mali bridge crash at 0x10 in vkBeginCommandBuffer** (Pixel 8 Pro G715, Lenovo TB373FU G615, Xiaomi G925): the client sent the begin info without the count the server decodes, so Mali got a zeroed begin info with stale flags. Fixed.
+- **Venus:** render server no longer aborts on a destroyed mutex when a client exits holding objects (BattleTempest's patch). Component `venus-proto13-93038b7d`.
+- **Mali-G1-Ultra (MT6993, arch v14):** known by its chip; Auto uses Venus. No PanVK build is proven on v14. HoloCure ran on Venus on an OPPO Find X9.
+- **Galaxy S24 FE:** Secret of the Mimic, Dreamcore and Schedule I exits were Android low-memory kills (about 3 GB free), not driver faults. The app now says so on the next start.
+- **In-app updater:** never installs the official (Adreno-only) build over this test build.
+- **Drivers:** PanVK-Mali-G615 on GunaCharanTeja 1.1.5-FC (`c52af8b`); RADV-Xclipse-upstream on JimVulkan v1.7.0 (`0340c63`).
+- **Worked on c9ebb247:** Need for Speed Most Wanted 50–60 fps (Redmi Note 14 Pro 5G, G615 pair, bridge off); Hollow Knight 33–45 fps (Lenovo TB373FU, G615 pair); Balatro ~20 min (Pixel 9a, Venus); Steam on a Pixel 8 Pro (Venus, after signing in on desktop Steam).
+- **Open:** Venus OpenGL still falls back to software on G615/G610 (Zink rejects the device before creating it); Steam client segfault on Venus right after login on a Pixel 9a (no dump: /tmp/dumps not writable); 31 bridge crashes in vkbDescUpdateRaw on the Lenovo (cause unknown).
+
 ## 2026-10-16 — Two driver fixes from other Mali forks (CI only, not device-tested)
 - **Steam's interface freezing on CSF Mali (G610 and newer):** one address was cut to 32 bits, so the GPU faulted and every queue stopped. Fixed in every CSF PanVK build (kbase, G615, G710, G720, and the faux123 pairs through the kbase Linux half). Found and proven on a G720 by emirvapur11; port by ryanistr.
 - **Android halves that never loaded:** the JM, G615 and G710 Android drivers needed libraries Android does not have (libdrm, and for JM also zlib, zstd, libc++), so DroidDeck's screen silently used the phone's own Mali driver instead. They now ship those libraries, with libdrm renamed so the phone's own copy cannot take its place. Finding by ryanistr. On the JM pair this may change what draws the screen (see the test notes); the other Android halves needed nothing.
