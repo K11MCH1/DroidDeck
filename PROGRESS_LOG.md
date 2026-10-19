@@ -13,6 +13,8 @@ From the 22 logs sent since c9ebb247 (14 testers):
 - **In-app updater:** never installs the official (Adreno-only) build over this test build.
 - **Drivers:** PanVK-Mali-G615 on GunaCharanTeja 1.1.5-FC (`c52af8b`); RADV-Xclipse-upstream on JimVulkan v1.7.0 (`0340c63`).
 - **Worked on c9ebb247:** Need for Speed Most Wanted 50–60 fps (Redmi Note 14 Pro 5G, G615 pair, bridge off); Hollow Knight 33–45 fps (Lenovo TB373FU, G615 pair); Balatro ~20 min (Pixel 9a, Venus); Steam on a Pixel 8 Pro (Venus, after signing in on desktop Steam).
+- **Published 2026-10-19:** the four signed APKs replaced in place on `droiddeck-test-non-adreno-all` (Test APK release run 39232010502, from Build APK 39230401779), release notes updated in place, README updated. Announced in the DroidDeck "Crash on mali devices" thread as DroidDeck-Bot (announce.yml), plus one combined reply to the 17 testers who sent logs or asked questions, and an earlier short "drivers rebuilt, fixes coming" card.
+- **Thread after the release:** a Pixel 8 Pro got Steam's gaming mode by turning Venus on and signing in once in desktop Steam (with Venus on but not signed in: sound, no picture). The Mali-G1-Ultra tester sees the app's start-up animation crash sometimes (skipping it works). A Pixel 9a tester had installed the official 0.5.0 instead of the test build.
 - **Open:** Venus OpenGL still falls back to software on G615/G610 (Zink rejects the device before creating it); Steam client segfault on Venus right after login on a Pixel 9a (no dump: /tmp/dumps not writable); 31 bridge crashes in vkbDescUpdateRaw on the Lenovo (cause unknown).
 
 ## 2026-10-16 — Two driver fixes from other Mali forks (CI only, not device-tested)
