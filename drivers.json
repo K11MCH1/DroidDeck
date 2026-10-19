@@ -21,21 +21,21 @@
   {
     "id": "RADV-Xclipse-upstream",
     "tag": "radv-xclipse-upstream",
-    "title": "RADV-Xclipse (upstream v1.6.0)",
+    "title": "RADV-Xclipse (upstream v1.7.0)",
     "gpus": "Samsung Xclipse 920 / 530 / 940. Chips: Exynos 2200, Exynos 1480, Exynos 2400 / 2400e (940 is experimental). Phones: Galaxy S22 / S22+ / S22 Ultra (Exynos models), Galaxy A55, Galaxy S24 / S24+ (Exynos models), Galaxy S24 FE. Not the Snapdragon versions of these phones, and not Exynos 1580 (Xclipse 540).",
     "author": "JimVulkan",
     "source": "https://github.com/JimVulkan/radv-xclipse",
     "android": {
       "repo": "JimVulkan/radv-xclipse",
       "asset": "radv-xclipse-.*\\.zip$",
-      "tag": "v.1.6.0"
+      "tag": "v1.7.0"
     },
     "build": {
       "driver": "radv",
       "src_repo": "JimVulkan/radv-xclipse",
-      "src_ref": "v.1.6.0"
+      "src_ref": "v1.7.0"
     },
-    "note": "Manual option, not the default (the default is RADV-Xclipse, built from v1.6.0-RC). This is JimVulkan's final v1.6.0 (cd63891), both halves: tessellation and transform feedback fixes on every Xclipse, BC terrain-texture fix, less memory for BC7 and signed BC4/BC5. Testers saw Monster Hunter Rise reach its main menu on it, but about 30% lower FauxVkTest scores than v1.6.0-RC. In the Linux half the author's Android properties do not exist; use the environment variables instead: RADV_XCLIPSE_BC7SRGB_RGBA8=1 (exact sRGB BC7) and RADV_XCLIPSE_BCSNORM_EXACT=1 (exact signed BC4/BC5)."
+    "note": "Manual option, not the default (the default is RADV-Xclipse, built from v1.6.0-RC, which testers measured faster). This is JimVulkan's v1.7.0 on Mesa 27.0.0-devel, both halves: everything in v1.6.0 (tessellation and transform feedback fixes, BC terrain-texture fix, less memory for BC7 and signed BC4/BC5) plus BC6H at half the memory. Less texture memory matters on 8 GB phones, where heavy games were killed by Android for memory. Ray tracing is untested upstream. In the Linux half the author's Android properties do not exist; use RADV_XCLIPSE_BC7SRGB_RGBA8=1 (exact sRGB BC7) and RADV_XCLIPSE_BCSNORM_EXACT=1 (exact signed BC4/BC5) instead."
   },
   {
     "id": "PanVK-Mali-kbase",
@@ -107,12 +107,12 @@
     "build": {
       "driver": "panvk",
       "src_repo": "GunaCharanTeja/panvk-kbase-android",
-      "src_ref": "g615-1.1.4-FC",
+      "src_ref": "g615-1.1.5-FC",
       "kind": "patchset",
       "profile": "g615-v11-csf",
       "kmds": "kbase"
     },
-    "note": "Built from the author's 1.1.4-FC tag (RDR1 GPU-fault fixes, fewer GPU queue stalls, faster and smaller emulated BC textures, 8 MiB tiler heap chunks). The author's own Android release is for adrenotools/X11 apps; the Android half here is built from the same tag and patches as the Linux half.",
+    "note": "Built from the author's 1.1.5-FC tag: 1.1.4-FC (RDR1 GPU-fault fixes, fewer GPU queue stalls, 8 MiB tiler heap chunks) plus BC textures transcoded at their native size (BC1-3 to ETC2, BC4/BC5 to EAC: about half the texture memory) and faster BC6H/BC7 conversion. PANVK_BC_ETC=0 / PANVK_BC_EAC=0 bring back 1.1.4's texture paths. The author's own Android release is for adrenotools/X11 apps; the Android half here is built from the same tag and patches as the Linux half.",
     "tag": "panvk-mali-g615"
   },
   {

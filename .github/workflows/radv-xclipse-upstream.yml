@@ -6,7 +6,7 @@ on:
     inputs:
       src_ref:
         description: Source branch, tag or commit to build (an upstream JimVulkan tag)
-        default: v.1.6.0
+        default: v1.7.0
   push:
     branches: [main]
     paths: ['.github/workflows/radv-xclipse-upstream.yml']
@@ -19,7 +19,7 @@ jobs:
       id: RADV-Xclipse-upstream
       driver: radv
       src_repo: JimVulkan/radv-xclipse
-      src_ref: ${{ inputs.src_ref || 'v.1.6.0' }}
+      src_ref: ${{ inputs.src_ref || 'v1.7.0' }}
       kind: git
       profile: ''
       kmds: 'kbase,panfrost'
