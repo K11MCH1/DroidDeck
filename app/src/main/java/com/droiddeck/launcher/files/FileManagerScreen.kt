@@ -92,10 +92,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.droiddeck.launcher.session.SessionPrefs
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.Date
+
+private enum class FileManagerNavigation { EXIT, RETURN_TO_START, BACK }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -156,8 +159,10 @@ fun FileManagerScreen(
     var pendingConflict by remember { mutableStateOf<File?>(null) }
     var conflictChoice by remember { mutableStateOf<ConflictChoice?>(null) }
     var conflictApplyToAll by remember { mutableStateOf(false) }
-    var operationJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
-    var cancelledJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+    var operationJob by remember { mutableStateOf<Job?>(null) }
+    var cancelledJob by remember { mutableStateOf<Job?>(null) }
+    var pendingNavigation by remember { mutableStateOf<FileManagerNavigation?>(null) }
+    var cancellingNavigation by remember { mutableStateOf(false) }
     var pendingBulkDelete by remember { mutableStateOf<List<File>>(emptyList()) }
     var searchQuery by remember { mutableStateOf("") }
     val visibleEntries = if (searchQuery.isBlank()) entries
@@ -183,7 +188,7 @@ fun FileManagerScreen(
     var showFavorites by remember { mutableStateOf(false) }
     var favTick by remember { mutableIntStateOf(0) }
 
-    var listingJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+    var listingJob by remember { mutableStateOf<Job?>(null) }
 
     fun loadDirectory(dir: File, resetScroll: Boolean = true) {
         currentDir = dir
@@ -229,19 +234,67 @@ fun FileManagerScreen(
 
     LaunchedEffect(Unit) { loadDirectory(rootDir) }
 
-    BackHandler(enabled = showFavorites || currentDir != currentRoot) {
-        if (showFavorites) {
-            showFavorites = false
-            return@BackHandler
+    val canGoUp = currentDir != currentRoot && currentDir.parentFile?.exists() == true
+    val operationActive = isOperationRunning || operationJob?.isCompleted == false || cancelledJob?.isCompleted == false
+
+    fun navigate(action: FileManagerNavigation) {
+        when (action) {
+            FileManagerNavigation.EXIT -> onExit?.invoke()
+            FileManagerNavigation.RETURN_TO_START -> returnToStart()
+            FileManagerNavigation.BACK -> {
+                if (showFavorites) showFavorites = false
+                else if (canGoUp) currentDir.parentFile?.let { loadDirectory(it) }
+                else onExit?.invoke()
+            }
         }
-        val parent = currentDir.parentFile
-        if (parent != null && parent.exists()) loadDirectory(parent)
     }
 
-    val canGoUp = currentDir != currentRoot && currentDir.parentFile?.exists() == true
-    fun goUp() {
-        val parent = currentDir.parentFile
-        if (currentDir != currentRoot && parent != null && parent.exists()) loadDirectory(parent)
+    fun requestNavigation(action: FileManagerNavigation) {
+        if (cancellingNavigation) return
+        if (operationActive) pendingNavigation = action else navigate(action)
+    }
+
+    BackHandler(enabled = operationActive || cancellingNavigation || showFavorites || currentDir != currentRoot) {
+        requestNavigation(FileManagerNavigation.BACK)
+    }
+
+    if (pendingNavigation != null) {
+        OutlinedAlertDialog(
+            onDismissRequest = { pendingNavigation = null },
+            title = { Text(stringResource(R.string.fm_cancel_operation_title)) },
+            text = { Text(stringResource(R.string.fm_cancel_operation_confirmation)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    val action = pendingNavigation ?: return@TextButton
+                    pendingNavigation = null
+                    val job = operationJob?.takeUnless(Job::isCompleted)
+                        ?: cancelledJob?.takeUnless(Job::isCompleted)
+                    if (job == null) {
+                        navigate(action)
+                    } else {
+                        cancellingNavigation = true
+                        cancelledJob = job
+                        job.cancel()
+                        scope.launch {
+                            job.join()
+                            if (operationJob === job) operationJob = null
+                            if (cancelledJob === job) cancelledJob = null
+                            pendingConflict = null
+                            isOperationRunning = false
+                            operationDeterminate = false
+                            if (action != FileManagerNavigation.EXIT) loadDirectory(currentDir, resetScroll = false)
+                            cancellingNavigation = false
+                            navigate(action)
+                        }
+                    }
+                }) { Text(stringResource(R.string.fm_accept)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingNavigation = null }) {
+                    Text(stringResource(R.string.fm_decline))
+                }
+            },
+        )
     }
 
     fun uniqueDestination(dir: File, name: String): File {
@@ -259,11 +312,13 @@ fun FileManagerScreen(
     }
 
     fun performDelete(file: File) {
-        scope.launch {
+        if (operationActive) return
+        operationJob = scope.launch {
             isOperationRunning = true
             operationLabel = context.getString(R.string.fm_op_deleting)
             val ok = withContext(Dispatchers.IO) { FileOps.delete(file) }
             isOperationRunning = false
+            operationJob = null
             loadDirectory(currentDir, resetScroll = false)
             if (!ok) Toast.makeText(context, R.string.fm_delete_failed, Toast.LENGTH_SHORT).show()
         }
@@ -356,32 +411,36 @@ fun FileManagerScreen(
     }
 
     fun performRename(file: File, newName: String) {
+        if (operationActive) return
         val target = File(file.parentFile, newName)
         if (target.exists()) {
             Toast.makeText(context, context.getString(R.string.fm_already_exists, newName), Toast.LENGTH_SHORT).show()
             return
         }
-        scope.launch {
+        operationJob = scope.launch {
             isOperationRunning = true
             operationLabel = context.getString(R.string.fm_op_renaming)
             val ok = withContext(Dispatchers.IO) { file.renameTo(target) }
             isOperationRunning = false
+            operationJob = null
             loadDirectory(currentDir, resetScroll = false)
             if (!ok) Toast.makeText(context, R.string.fm_rename_failed, Toast.LENGTH_SHORT).show()
         }
     }
 
     fun createFolder(parent: File, name: String) {
+        if (operationActive) return
         val target = File(parent, name)
         if (target.exists()) {
             Toast.makeText(context, context.getString(R.string.fm_already_exists, name), Toast.LENGTH_SHORT).show()
             return
         }
-        scope.launch {
+        operationJob = scope.launch {
             isOperationRunning = true
             operationLabel = context.getString(R.string.fm_op_creating_folder)
             val ok = withContext(Dispatchers.IO) { target.mkdirs() }
             isOperationRunning = false
+            operationJob = null
             loadDirectory(currentDir, resetScroll = false)
             if (!ok) Toast.makeText(context, R.string.fm_create_folder_failed, Toast.LENGTH_SHORT).show()
         }
@@ -598,7 +657,7 @@ fun FileManagerScreen(
                 .background(MaterialTheme.colorScheme.surfaceContainer)
                 .padding(horizontal = 8.dp, vertical = 6.dp),
         ) {
-            IconButton(onClick = { goUp() }, enabled = canGoUp) {
+            IconButton(onClick = { requestNavigation(FileManagerNavigation.BACK) }, enabled = canGoUp && !cancellingNavigation) {
                 Icon(Icons.Filled.ArrowBack, stringResource(R.string.fm_back), tint = MaterialTheme.colorScheme.primary)
             }
 
@@ -689,7 +748,7 @@ fun FileManagerScreen(
             }
 
             if (launchDir != null) {
-                IconButton(onClick = { returnToStart() }) {
+                IconButton(onClick = { requestNavigation(FileManagerNavigation.RETURN_TO_START) }, enabled = !cancellingNavigation) {
                     Icon(Icons.AutoMirrored.Filled.KeyboardReturn, stringResource(R.string.fm_return_to_start), tint = MaterialTheme.colorScheme.primary)
                 }
                 if (LocalConfiguration.current.screenWidthDp >= 700) Spacer(Modifier.width(56.dp))
@@ -771,7 +830,7 @@ fun FileManagerScreen(
                 }
             }
             if (!pickMode && onExit != null) {
-                IconButton(onClick = onExit) {
+                IconButton(onClick = { requestNavigation(FileManagerNavigation.EXIT) }, enabled = !cancellingNavigation) {
                     Icon(Icons.AutoMirrored.Filled.ExitToApp, stringResource(R.string.fm_exit), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -1014,7 +1073,7 @@ fun FileManagerScreen(
                     contentPadding = PaddingValues(8.dp),
                 ) {
                     if (canGoUp) item(key = "..", span = { GridItemSpan(maxLineSpan) }) {
-                        ParentFolderRow(compact = compactRows, onTap = { goUp() })
+                        ParentFolderRow(compact = compactRows, onTap = { requestNavigation(FileManagerNavigation.BACK) })
                     }
                     items(shownEntries, key = { it.absolutePath }) { file ->
                         val isFav = remember(file.absolutePath, favTick) {
@@ -1080,7 +1139,7 @@ fun FileManagerScreen(
             } else
             LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
                 if (canGoUp) item(key = "..") {
-                    ParentFolderRow(compact = compactRows, onTap = { goUp() })
+                    ParentFolderRow(compact = compactRows, onTap = { requestNavigation(FileManagerNavigation.BACK) })
                 }
                 if (entries.isEmpty()) {
                     item {
