@@ -57,7 +57,7 @@ object FileOps {
         }
         if (!copyWithProgress(src, dst, progress, isCancelled)) return false
         if (isCancelled()) return false
-        return delete(src)
+        return delete(src, isCancelled)
     }
 
     fun copyWithProgress(src: File, dst: File, progress: ProgressCallback?, isCancelled: () -> Boolean = { false }): Boolean {
@@ -66,8 +66,8 @@ object FileOps {
     }
 
     private fun copyWithProgress(src: File, dst: File, done: LongArray, total: Long, progress: ProgressCallback?, isCancelled: () -> Boolean): Boolean {
-        if (isCancelled()) throw CancellationException("Copy cancelled: $src")
-        if (isSymlink(src)) return true
+        if (isCancelled()) throw java.util.concurrent.CancellationException("Copy cancelled: $src")
+        if (isSymlink(src)) return copyLink(src, dst)
         if (sameFile(src, dst)) return true
         if (src.isDirectory && isWithin(dst, src)) {
             Log.e(TAG, "Refusing to copy directory into itself: $src -> $dst")
@@ -129,19 +129,19 @@ object FileOps {
                         progress?.onProgress(done[0], total)
                     }
                     if (position < size) throw IOException("Incomplete copy: $position/$size bytes")
+                    if (size > 0 && isCancelled()) throw CancellationException("Copy cancelled: $src")
                 }
             }
-            if (isCancelled()) throw CancellationException("Copy cancelled: $src")
             staging?.let { directory ->
                 val copied = File(directory, "file").toPath()
                 if (permissions != null && Files.getPosixFilePermissions(copied) != permissions) {
                     Files.setPosixFilePermissions(copied, permissions)
                 }
-                if (isCancelled()) throw CancellationException("Copy cancelled: $src")
+                if (isCancelled()) throw java.util.concurrent.CancellationException("Copy cancelled: $src")
                 Files.move(copied, target.toPath(), java.nio.file.StandardCopyOption.ATOMIC_MOVE)
             }
             return true
-        } catch (e: CancellationException) {
+        } catch (e: java.util.concurrent.CancellationException) {
             if (created) dst.delete()
             throw e
         } catch (e: IOException) {
@@ -154,6 +154,32 @@ object FileOps {
                 File(directory, "file").delete()
                 directory.delete()
             }
+        }
+    }
+
+    private fun copyLink(src: File, dst: File): Boolean {
+        if (src.absoluteFile == dst.absoluteFile) return true
+        return try {
+            val target = Files.readSymbolicLink(src.toPath())
+            val parent = dst.parentFile
+            if (parent != null && !parent.exists() && !parent.mkdirs()) return false
+            try {
+                Files.createSymbolicLink(dst.toPath(), target)
+            } catch (e: java.nio.file.FileAlreadyExistsException) {
+                val staging = Files.createTempDirectory(checkNotNull(dst.absoluteFile.parentFile).toPath(), ".droiddeck-link-")
+                val tmp = staging.resolve("link")
+                try {
+                    Files.createSymbolicLink(tmp, target)
+                    Files.move(tmp, dst.toPath(), java.nio.file.StandardCopyOption.ATOMIC_MOVE)
+                } finally {
+                    Files.deleteIfExists(tmp)
+                    Files.deleteIfExists(staging)
+                }
+            }
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to copy link: $src to $dst", e)
+            false
         }
     }
 
