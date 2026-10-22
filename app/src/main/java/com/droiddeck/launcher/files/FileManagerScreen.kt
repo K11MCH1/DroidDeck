@@ -93,6 +93,7 @@ import androidx.compose.ui.unit.sp
 import com.droiddeck.launcher.session.SessionPrefs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -316,7 +317,8 @@ fun FileManagerScreen(
         operationJob = scope.launch {
             isOperationRunning = true
             operationLabel = context.getString(R.string.fm_op_deleting)
-            val ok = withContext(Dispatchers.IO) { FileOps.delete(file) }
+            val job = coroutineContext[Job]
+            val ok = withContext(Dispatchers.IO) { FileOps.delete(file) { job?.isActive == false } }
             isOperationRunning = false
             operationJob = null
             loadDirectory(currentDir, resetScroll = false)
@@ -342,6 +344,7 @@ fun FileManagerScreen(
             operationDeterminate = true
             operationLabel = context.getString(if (cut) R.string.fm_op_moving else R.string.fm_op_copying)
             isOperationRunning = true
+            val job = coroutineContext[Job]
 
             var applyToAll: ConflictChoice? = null
             var failed = 0
@@ -377,6 +380,7 @@ fun FileManagerScreen(
                 }
                 var lastPct = -1
                 val onProgress = FileOps.ProgressCallback { copied, total ->
+                    job?.ensureActive()
                     val pct = if (total > 0) ((copied * 100) / total).toInt() else 100
                     if (pct != lastPct) {
                         lastPct = pct
@@ -385,8 +389,8 @@ fun FileManagerScreen(
                 }
                 val target = dst
                 val ok = withContext(Dispatchers.IO) {
-                    if (cut) FileOps.moveWithProgress(src, target, onProgress)
-                    else FileOps.copyWithProgress(src, target, onProgress)
+                    if (cut) FileOps.moveWithProgress(src, target, onProgress) { job?.isActive == false }
+                    else FileOps.copyWithProgress(src, target, onProgress) { job?.isActive == false }
                 }
                 if (ok) done++ else failed++
             }
@@ -561,10 +565,11 @@ fun FileManagerScreen(
                     selectedPaths = emptySet()
                     operationJob = scope.launch {
                         isOperationRunning = true
+                        val job = coroutineContext[Job]
                         var failed = 0
                         victims.forEachIndexed { i, f ->
                             operationLabel = context.getString(R.string.fm_op_deleting_batch, i + 1, victims.size, f.name)
-                            if (!withContext(Dispatchers.IO) { FileOps.delete(f) }) failed++
+                            if (!withContext(Dispatchers.IO) { FileOps.delete(f) { job?.isActive == false } }) failed++
                         }
                         isOperationRunning = false
                         operationJob = null
