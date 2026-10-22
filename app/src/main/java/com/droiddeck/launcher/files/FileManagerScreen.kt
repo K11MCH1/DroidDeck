@@ -128,7 +128,7 @@ fun FileManagerScreen(
         initialDir?.takeIf { it.isDirectory } ?: File("/storage/emulated/0")
     }
     val launchDir = remember(initialDir, pickMode) {
-        initialDir?.takeIf { it.isDirectory && !pickMode }
+        initialDir?.takeIf { !pickMode }
     }
     var currentDir by remember { mutableStateOf(rootDir) }
     val initialRoot = remember(rootDir) {
@@ -236,7 +236,8 @@ fun FileManagerScreen(
     LaunchedEffect(Unit) { loadDirectory(rootDir) }
 
     val canGoUp = currentDir != currentRoot && currentDir.parentFile?.exists() == true
-    val operationActive = isOperationRunning || operationJob?.isCompleted == false || cancelledJob?.isCompleted == false
+    fun isOperationActive() = isOperationRunning || operationJob?.isCompleted == false || cancelledJob?.isCompleted == false
+    val operationActive = isOperationActive()
 
     fun navigate(action: FileManagerNavigation) {
         when (action) {
@@ -252,7 +253,7 @@ fun FileManagerScreen(
 
     fun requestNavigation(action: FileManagerNavigation) {
         if (cancellingNavigation) return
-        if (operationActive) pendingNavigation = action else navigate(action)
+        if (isOperationActive()) pendingNavigation = action else navigate(action)
     }
 
     BackHandler(enabled = operationActive || cancellingNavigation || showFavorites || currentDir != currentRoot) {
@@ -313,14 +314,14 @@ fun FileManagerScreen(
     }
 
     fun performDelete(file: File) {
-        if (operationActive) return
+        if (isOperationActive()) return
         operationJob = scope.launch {
             isOperationRunning = true
             operationLabel = context.getString(R.string.fm_op_deleting)
             val job = coroutineContext[Job]
             val ok = withContext(Dispatchers.IO) { FileOps.delete(file) { job?.isActive == false } }
             isOperationRunning = false
-            operationJob = null
+            if (operationJob === job) operationJob = null
             loadDirectory(currentDir, resetScroll = false)
             if (!ok) Toast.makeText(context, R.string.fm_delete_failed, Toast.LENGTH_SHORT).show()
         }
@@ -335,7 +336,7 @@ fun FileManagerScreen(
 
     fun performPaste() {
         val sources = clipboardFiles
-        if (sources.isEmpty() || isOperationRunning || operationJob?.isActive == true || cancelledJob?.isCompleted == false) return
+        if (sources.isEmpty() || isOperationActive()) return
         val dstDir = currentDir
         val cut = isCutOperation
 
@@ -397,7 +398,7 @@ fun FileManagerScreen(
 
             isOperationRunning = false
             operationDeterminate = false
-            operationJob = null
+            if (operationJob === job) operationJob = null
             clipboardFiles = emptyList()
             isCutOperation = false
             selectionMode = false
@@ -415,36 +416,38 @@ fun FileManagerScreen(
     }
 
     fun performRename(file: File, newName: String) {
-        if (operationActive) return
+        if (isOperationActive()) return
         val target = File(file.parentFile, newName)
         if (target.exists()) {
             Toast.makeText(context, context.getString(R.string.fm_already_exists, newName), Toast.LENGTH_SHORT).show()
             return
         }
         operationJob = scope.launch {
+            val job = coroutineContext[Job]
             isOperationRunning = true
             operationLabel = context.getString(R.string.fm_op_renaming)
             val ok = withContext(Dispatchers.IO) { file.renameTo(target) }
             isOperationRunning = false
-            operationJob = null
+            if (operationJob === job) operationJob = null
             loadDirectory(currentDir, resetScroll = false)
             if (!ok) Toast.makeText(context, R.string.fm_rename_failed, Toast.LENGTH_SHORT).show()
         }
     }
 
     fun createFolder(parent: File, name: String) {
-        if (operationActive) return
+        if (isOperationActive()) return
         val target = File(parent, name)
         if (target.exists()) {
             Toast.makeText(context, context.getString(R.string.fm_already_exists, name), Toast.LENGTH_SHORT).show()
             return
         }
         operationJob = scope.launch {
+            val job = coroutineContext[Job]
             isOperationRunning = true
             operationLabel = context.getString(R.string.fm_op_creating_folder)
             val ok = withContext(Dispatchers.IO) { target.mkdirs() }
             isOperationRunning = false
-            operationJob = null
+            if (operationJob === job) operationJob = null
             loadDirectory(currentDir, resetScroll = false)
             if (!ok) Toast.makeText(context, R.string.fm_create_folder_failed, Toast.LENGTH_SHORT).show()
         }
@@ -560,6 +563,7 @@ fun FileManagerScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
+                    if (isOperationActive()) return@TextButton
                     pendingBulkDelete = emptyList()
                     selectionMode = false
                     selectedPaths = emptySet()
@@ -572,7 +576,7 @@ fun FileManagerScreen(
                             if (!withContext(Dispatchers.IO) { FileOps.delete(f) { job?.isActive == false } }) failed++
                         }
                         isOperationRunning = false
-                        operationJob = null
+                        if (operationJob === job) operationJob = null
                         loadDirectory(currentDir, resetScroll = false)
                         if (failed > 0) {
                             Toast.makeText(context, context.resources.getQuantityString(R.plurals.fm_delete_some_failed, failed, failed), Toast.LENGTH_SHORT).show()

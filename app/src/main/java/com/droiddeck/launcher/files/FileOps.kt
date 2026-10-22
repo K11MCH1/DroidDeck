@@ -42,9 +42,10 @@ object FileOps {
         return ok
     }
 
-    fun totalSize(f: File?): Long {
+    fun totalSize(f: File?, isCancelled: () -> Boolean = { false }): Long {
+        if (isCancelled()) throw CancellationException("Size scan cancelled: $f")
         if (f == null || !f.exists() || isSymlink(f)) return 0
-        if (f.isDirectory) return f.listFiles()?.sumOf { totalSize(it) } ?: 0
+        if (f.isDirectory) return f.listFiles()?.sumOf { totalSize(it, isCancelled) } ?: 0
         return f.length()
     }
 
@@ -56,12 +57,12 @@ object FileOps {
             return true
         }
         if (!copyWithProgress(src, dst, progress, isCancelled)) return false
-        if (isCancelled()) return false
-        return delete(src, isCancelled)
+        // Once the destination is committed, finish deleting the source.
+        return delete(src)
     }
 
     fun copyWithProgress(src: File, dst: File, progress: ProgressCallback?, isCancelled: () -> Boolean = { false }): Boolean {
-        val total = maxOf(totalSize(src), 1L)
+        val total = maxOf(totalSize(src, isCancelled), 1L)
         return copyWithProgress(src, dst, longArrayOf(0), total, progress, isCancelled)
     }
 
@@ -74,15 +75,23 @@ object FileOps {
             return false
         }
         if (src.isDirectory) {
-            if (!dst.exists() && !dst.mkdirs()) return false
-            var allOk = true
-            src.list()?.forEach { name ->
-                if (!copyWithProgress(File(src, name), File(dst, name), done, total, progress, isCancelled)) {
-                    Log.e(TAG, "Failed to copy: ${File(src, name)}")
-                    allOk = false
-                }
+            val created = if (dst.exists()) false else {
+                if (!dst.mkdirs()) return false
+                true
             }
-            return allOk
+            try {
+                var allOk = true
+                src.list()?.forEach { name ->
+                    if (!copyWithProgress(File(src, name), File(dst, name), done, total, progress, isCancelled)) {
+                        Log.e(TAG, "Failed to copy: ${File(src, name)}")
+                        allOk = false
+                    }
+                }
+                return allOk
+            } catch (e: CancellationException) {
+                if (created) delete(dst)
+                throw e
+            }
         }
         val parent = dst.parentFile
         if (!src.exists() || (parent != null && !parent.exists() && !parent.mkdirs())) return false
@@ -134,8 +143,14 @@ object FileOps {
             }
             staging?.let { directory ->
                 val copied = File(directory, "file").toPath()
-                if (permissions != null && Files.getPosixFilePermissions(copied) != permissions) {
-                    Files.setPosixFilePermissions(copied, permissions)
+                if (permissions != null) {
+                    try {
+                        if (Files.getPosixFilePermissions(copied) != permissions) {
+                            Files.setPosixFilePermissions(copied, permissions)
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to restore destination permissions: $target", e)
+                    }
                 }
                 if (isCancelled()) throw java.util.concurrent.CancellationException("Copy cancelled: $src")
                 Files.move(copied, target.toPath(), java.nio.file.StandardCopyOption.ATOMIC_MOVE)
