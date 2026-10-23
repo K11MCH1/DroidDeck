@@ -346,8 +346,10 @@ object SessionPrefs {
 
     internal fun coreAllocation(context: Context, defaults: CpuAllocationDefaults.Allocation? = CpuAllocationDefaults.device): CoreAllocation {
         val saved = prefs(context)
+        val defaultClientOverride = defaults != null && !saved.contains("clientCpus") &&
+            !com.droiddeck.launcher.gpu.QualcommSystemDriver.selected(context)
         return CoreAllocation(
-            saved.getBoolean("clientCpusOverride", defaults != null && !saved.contains("clientCpus")),
+            saved.getBoolean("clientCpusOverride", defaultClientOverride),
             saved.getString("clientCpus", defaults?.client.orEmpty()).orEmpty(),
             saved.getString("gameCpus", defaults?.game.orEmpty()).orEmpty(),
         )

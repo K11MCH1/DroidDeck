@@ -46,4 +46,16 @@ class CoreAllocationPrefsTest {
         SessionPrefs.setClientCpusOverride(app, false)
         assertEquals(SessionPrefs.CoreAllocation(false, "7", "0,1,2,3,4,5,6,7"), SessionPrefs.coreAllocation(app, defaults))
     }
+
+    @Test fun qualcommSoftwareUiDoesNotEnableTheSingleCoreDefault() {
+        SessionPrefs.setLinuxDriver(app, "system-qualcomm")
+        assertEquals(SessionPrefs.CoreAllocation(false, "7", "3,4,5,6"), SessionPrefs.coreAllocation(app, defaults))
+        assertFalse(saved.contains("clientCpusOverride"))
+    }
+
+    @Test fun qualcommKeepsAnExplicitClientCoreChoice() {
+        SessionPrefs.setLinuxDriver(app, "system-qualcomm")
+        saved.edit().putBoolean("clientCpusOverride", true).putString("clientCpus", "6,7").commit()
+        assertEquals(SessionPrefs.CoreAllocation(true, "6,7", "3,4,5,6"), SessionPrefs.coreAllocation(app, defaults))
+    }
 }
