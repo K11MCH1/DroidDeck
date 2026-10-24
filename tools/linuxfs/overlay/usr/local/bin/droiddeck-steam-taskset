@@ -13,6 +13,14 @@ if [ "$#" -ge 2 ] && [[ "$1" =~ ^(0[xX])?[0-9a-fA-F]+$ ]] &&
     # Forced lazy descriptors corrupt CEF render targets on Qualcomm v891.7.
     export ZINK_DESCRIPTORS=auto
   fi
+  if [ -n "${BL_STEAM_WEBHELPER_ENV:-}" ]; then
+    read -r -a extra <<<"$BL_STEAM_WEBHELPER_ENV"
+    export "${extra[@]}"
+  fi
+  if [ -n "${BL_STEAM_WEBHELPER_ARGS:-}" ]; then
+    read -r -a extra <<<"$BL_STEAM_WEBHELPER_ARGS"
+    set -- "$@" "${extra[@]}"
+  fi
   exec -- "$@"
 fi
 exec /usr/bin/taskset "$@"

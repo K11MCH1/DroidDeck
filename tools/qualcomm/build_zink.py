@@ -9,7 +9,7 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
 REVISION = '31e9a6b2e95e30d84bf3177d1f497d063e59b6b2'
-PATCHES = ('zink-optional-maintenance5.patch', 'zink-pixmap-without-dri3.patch')
+PATCHES = ('zink-optional-maintenance5.patch', 'zink-pixmap-without-dri3.patch', 'zink-qualcomm-color-write-enable.patch')
 OPTIONS = ['-Dbuildtype=release', '-Dgallium-drivers=zink', '-Dvulkan-drivers=[]',
            '-Dllvm=disabled', '-Dplatforms=x11,wayland', '-Dglvnd=enabled',
            '-Dglvnd-vendor-name=droiddeck_qualcomm', '-Dgallium-va=disabled',

@@ -1,0 +1,14 @@
+diff --git a/src/gallium/drivers/zink/zink_screen.c b/src/gallium/drivers/zink/zink_screen.c
+index c11c6a2..70cd7a5 100644
+--- a/src/gallium/drivers/zink/zink_screen.c
++++ b/src/gallium/drivers/zink/zink_screen.c
+@@ -2937,6 +2937,9 @@ init_driver_workarounds(struct zink_screen *screen)
+       /* CWE usage needs EDS1 */
+       screen->info.have_EXT_color_write_enable = false;
+    }
++   /* Adreno driver 0.676 blends against a zero destination in pipelines with dynamic color write enable. */
++   if (zink_driverid(screen) == VK_DRIVER_ID_QUALCOMM_PROPRIETARY)
++      screen->info.have_EXT_color_write_enable = false;
+    if (zink_driverid(screen) == VK_DRIVER_ID_AMD_PROPRIETARY)
+       /* this completely breaks xfb somehow */
+       screen->info.have_EXT_extended_dynamic_state2 = false;
