@@ -19,7 +19,7 @@ object QualcommSystemDriver {
     const val ID = "system-qualcomm"
     const val HAL = "/vendor/lib64/hw/vulkan.adreno.so"
     private val required = listOf("lib/libhybris-vulkan-icd.so.0", "lib/libhybris-common.so.1", "lib/libhybris/linker/q.so",
-        "bin/gamescope", "shaders/qualcomm-shaders.so", "wsi/libVkLayer_window_system_integration.so",
+        "bin/gamescope", "shaders/qualcomm-shaders.so", "shaders/vulkan-trace.so", "wsi/libVkLayer_window_system_integration.so",
         "mesa/libgallium-26.2.3.so", "mesa/dri/zink_dri.so", "mesa/libGLX_droiddeck_qualcomm.so.0",
         "mesa/libEGL_droiddeck_qualcomm.so.0", "mesa/libgbm.so.1", "mesa/gbm/dri_gbm.so",
         "mesa/egl-vendor.json", "mesa/qualcomm-gl.sh")

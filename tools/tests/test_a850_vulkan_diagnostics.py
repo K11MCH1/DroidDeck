@@ -1,10 +1,13 @@
 import ctypes as c
+import hashlib
 import importlib.machinery
 import importlib.util
 import io
+import json
 import os
 from pathlib import Path
 import subprocess
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -78,6 +81,93 @@ class VulkanDiagnosticsTest(unittest.TestCase):
         self.assertEqual(child_environment['VK_LOADER_LAYERS_DISABLE'], '~implicit~')
         self.assertEqual(child_environment['VK_ICD_FILENAMES'], '/same/icd.json')
         self.assertIn('"status": -11', output.getvalue())
+
+    def test_trace_cases_are_started_in_disposable_children(self):
+        with patch.object(diagnostics.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, b'')) as run, \
+             patch('sys.stdout', new_callable=io.StringIO):
+            diagnostics.run_case('hal-version', 0, layers=False)
+        self.assertEqual(run.call_args.args[0][-3:], ['--trace', 'hal-version', '0'])
+        self.assertEqual(run.call_args.kwargs['timeout'], 4)
+
+
+@unittest.skipUnless(os.environ.get('A850_TRACE_TEST'), 'Set A850_TRACE_TEST to the compiled test_vulkan_trace executable')
+class NativeTraceTest(unittest.TestCase):
+    def trace(self, mode, result):
+        completed = subprocess.run([os.environ['A850_TRACE_TEST'], mode, str(result)],
+                                   capture_output=True, text=True, check=False)
+        self.assertEqual(completed.returncode, 0 if result == 0 else 1, completed.stderr)
+        return [json.loads(line) for line in completed.stdout.splitlines()]
+
+    def test_hal_version_positive_failure_and_written_value_are_preserved(self):
+        events = self.trace('hal-version', 1)
+        version = next(event for event in events if event['event'] == 'version.result')
+        self.assertEqual(version['result'], 1)
+        self.assertTrue(version['written'])
+        self.assertEqual(version['raw'], (1 << 22) | (4 << 12))
+
+    def test_loader_initialization_order_is_recorded(self):
+        events = self.trace('hal-version-after-loader', 1)
+        versions = [event for event in events if event['event'] == 'version.result']
+        self.assertEqual(versions[0]['source'], 'platform.before-hal.version')
+        self.assertEqual(versions[0]['result'], 0)
+        self.assertEqual(versions[1]['result'], 1)
+
+    def test_failed_creation_does_not_destroy_an_invalid_instance(self):
+        events = self.trace('platform', 1)
+        result = next(event for event in events if event['event'] == 'instance.result')
+        self.assertEqual(result['result'], 1)
+        self.assertFalse(any(event['event'] == 'instance.destroyed' for event in events))
+
+    def test_successful_instance_is_destroyed(self):
+        events = self.trace('platform', 0)
+        self.assertTrue(any(event['event'] == 'instance.destroyed' for event in events))
+
+    def test_function_owner_strings_are_valid_json(self):
+        events = self.trace('hal-version', 0)
+        function = next(event for event in events if event['event'] == 'function.resolved' and event['owner_found'])
+        self.assertEqual(function['module'], 'mock\\module"name\n.so')
+        unknown = next(event for event in events if event.get('name') == 'HAL.gipa.unknown-command')
+        self.assertFalse(unknown['owner_found'])
+
+
+class DiagnosticAttestationTest(unittest.TestCase):
+    def setUp(self):
+        source = Path(__file__).resolve().parents[1] / 'release/runtime_inputs.py'
+        spec = importlib.util.spec_from_file_location('a850_runtime_inputs', source)
+        self.runtime = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.runtime)
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        sources = {}
+        for name in ('vulkan_trace.c', 'hal_probe_abi.h', 'build_diagnostics.py'):
+            path = self.root / 'tools/qualcomm' / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(name.encode())
+            sources[path.relative_to(self.root).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
+        for relative, native in [('app/build/a850Native/arm64-v8a/liba850vulkanprobe.so', True),
+                                 ('app/build/qualcommAssets/qualcomm/shaders/vulkan-trace.so', False)]:
+            path = self.root / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b'verified ELF fixture')
+            metadata = dict(schema=1, native=native, sources=sources,
+                            binary_sha256=hashlib.sha256(path.read_bytes()).hexdigest())
+            path.with_name(path.name + '.build-info').write_text(json.dumps(metadata))
+
+    def test_both_diagnostic_binaries_are_attested(self):
+        expected = self.runtime.diagnostic_assets(self.root)
+        self.assertEqual(set(expected), {'lib/arm64-v8a/liba850vulkanprobe.so',
+                                         'assets/qualcomm/shaders/vulkan-trace.so'})
+
+    def test_changed_probe_source_invalidates_the_build(self):
+        (self.root / 'tools/qualcomm/vulkan_trace.c').write_bytes(b'changed source')
+        with self.assertRaisesRegex(ValueError, 'differs from its source'):
+            self.runtime.diagnostic_assets(self.root)
+
+    def test_changed_probe_binary_is_rejected(self):
+        (self.root / 'app/build/a850Native/arm64-v8a/liba850vulkanprobe.so').write_bytes(b'changed binary')
+        with self.assertRaisesRegex(ValueError, 'differs from its source'):
+            self.runtime.diagnostic_assets(self.root)
 
 
 if __name__ == '__main__':

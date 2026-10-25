@@ -434,6 +434,12 @@ class SessionService : Service() {
         val sessionDir = openSessionFolder()
         val sessionLog = File(sessionDir, "session.log")
 
+        if (com.droiddeck.launcher.gpu.QualcommSystemDriver.selected(this)) {
+            com.droiddeck.launcher.gpu.NativeVulkanDiagnostics.run(this, sessionDir) {
+                gen == sessionGen && SessionState.running
+            }
+        }
+
         Log.i(TAG, GpuClockPin.start(this))
         Log.i(TAG, GameThreadHints.start(this))
 

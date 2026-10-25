@@ -128,7 +128,7 @@ android {
         applicationId "com.droiddeck.launcher.a850"
         minSdkVersion 26
         targetSdkVersion 28
-        versionCode 15
+        versionCode 16
         versionName "0.6.0"
         buildConfigField "String", "BUILD_LABEL", "\"${escapedBuildLabel}\""
         buildConfigField "String", "SOURCE_COMMIT", "\"${sourceCommit}\""
@@ -312,6 +312,19 @@ def stageQualcommRuntime = tasks.register('stageQualcommRuntime', Exec) {
         '--ndk', android.ndkDirectory.absolutePath
 }
 android.sourceSets.main.assets.srcDir(layout.buildDirectory.dir('qualcommAssets'))
+
+def stageA850NativeProbe = tasks.register('stageA850NativeProbe', Exec) {
+    workingDir rootProject.projectDir
+    inputs.files(rootProject.file('tools/qualcomm/vulkan_trace.c'),
+        rootProject.file('tools/qualcomm/hal_probe_abi.h'), rootProject.file('tools/qualcomm/build_diagnostics.py'))
+    inputs.property('ndkVersion', android.ndkVersion)
+    outputs.dir(layout.buildDirectory.dir('a850Native'))
+    commandLine pythonExecutable, 'tools/qualcomm/build_diagnostics.py', '--native',
+        '--ndk', android.ndkDirectory.absolutePath,
+        '--output', layout.buildDirectory.file('a850Native/arm64-v8a/liba850vulkanprobe.so').get().asFile.absolutePath
+}
+android.sourceSets.main.jniLibs.srcDir(layout.buildDirectory.dir('a850Native'))
+tasks.named('preBuild').configure { dependsOn(stageA850NativeProbe) }
 tasks.named('preBuild').configure { dependsOn(stageQualcommRuntime) }
 tasks.matching { it.name.toLowerCase(Locale.ROOT).contains('lint') }.configureEach { dependsOn(stageQualcommRuntime) }
 if (vitureSdkDir) android.sourceSets.main.assets.srcDir(layout.buildDirectory.dir('vitureAssets'))

@@ -50,3 +50,5 @@ def build(output, archive, lock, ndk):
         name='VK_LAYER_DROIDDECK_qualcomm_shaders', type='GLOBAL', library_path='./qualcomm-shaders.so',
         api_version='1.4.0', implementation_version='1', description='Gamescope constant YUV sampler indices for Qualcomm'))
     (output / 'VkLayer_DROIDDECK_qualcomm_shaders.json').write_text(json.dumps(manifest) + '\n', encoding='utf-8')
+    from build_diagnostics import build as build_diagnostics
+    build_diagnostics(output / 'vulkan-trace.so', ndk)

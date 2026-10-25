@@ -209,6 +209,26 @@ def qualcomm_assets(root):
                      for entry in lock.get('mesa', {}).get('files', [])})
     expected.update({'assets/qualcomm/' + entry['path']: entry['sha256']
                      for entry in lock.get('wsi', {}).get('files', [])})
+    expected.update(diagnostic_assets(root))
+    return expected
+
+
+def diagnostic_assets(root):
+    if not (root / 'tools/qualcomm/vulkan_trace.c').is_file():
+        return {}
+    expected = {}
+    for name, relative, native in [
+        ('lib/arm64-v8a/liba850vulkanprobe.so', 'app/build/a850Native/arm64-v8a/liba850vulkanprobe.so', True),
+        ('assets/qualcomm/shaders/vulkan-trace.so', 'app/build/qualcommAssets/qualcomm/shaders/vulkan-trace.so', False),
+    ]:
+        binary = root / relative
+        metadata = json.loads(binary.with_name(binary.name + '.build-info').read_text())
+        sources = ['tools/qualcomm/vulkan_trace.c', 'tools/qualcomm/hal_probe_abi.h', 'tools/qualcomm/build_diagnostics.py']
+        if metadata.get('schema') != 1 or metadata.get('native') != native or metadata.get('sources') != {
+            source: digest(root / source) for source in sources
+        } or metadata.get('binary_sha256') != digest(binary):
+            raise ValueError('Diagnostic binary differs from its source/build record: ' + name)
+        expected[name] = metadata['binary_sha256']
     return expected
 
 

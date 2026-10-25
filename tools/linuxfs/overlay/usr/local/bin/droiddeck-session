@@ -263,8 +263,8 @@ if [ -z "${BL_INSIDE:-}" ]; then
   fi
   export BL_INSIDE=1
   if [ "${DROIDDECK_VULKAN_DIAGNOSTICS:-0}" = 1 ] && [ -n "${BL_DEBUG_DIR:-}" ]; then
-    echo "== A850 Vulkan diagnostics starting (up to 45 seconds)"
-    timeout -k 1 45 python3 /usr/local/bin/droiddeck-vulkan-diagnostics > "$BL_DEBUG_DIR/vulkan-diagnostics.log" 2>&1
+    echo "== A850 Vulkan diagnostics v2 starting (up to 35 seconds; native comparison is in vulkan-native.log)"
+    timeout -k 1 35 python3 /usr/local/bin/droiddeck-vulkan-diagnostics > "$BL_DEBUG_DIR/vulkan-diagnostics.log" 2>&1
     echo "== A850 Vulkan diagnostics finished: status $?; continuing with Gamescope"
     export VK_LOADER_DEBUG=error,warn,driver,layer
   fi
