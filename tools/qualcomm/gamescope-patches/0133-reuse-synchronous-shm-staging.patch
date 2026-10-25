@@ -1,0 +1,173 @@
+--- a/src/rendervulkan.cpp
++++ b/src/rendervulkan.cpp
+@@ -5080,6 +5080,68 @@
+ 	return &renderer->base;
+ }
+ 
++class CShmUploadBuffer
++{
++public:
++	~CShmUploadBuffer() { reset(); }
++	bool ensure(VkDeviceSize size)
++	{
++		if (size <= capacity)
++			return true;
++		reset();
++		VkBufferCreateInfo info = { .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
++		                            .size = size, .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT };
++		if (g_device.vk.CreateBuffer(g_device.device(), &info, nullptr, &buffer) != VK_SUCCESS) {
++			buffer = VK_NULL_HANDLE;
++			return false;
++		}
++		VkMemoryRequirements requirements;
++		g_device.vk.GetBufferMemoryRequirements(g_device.device(), buffer, &requirements);
++		int32_t type = g_device.findMemoryType(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
++		                                     requirements.memoryTypeBits);
++		if (type < 0) {
++			reset();
++			return false;
++		}
++		VkMemoryAllocateInfo allocate = { .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
++		                                 .allocationSize = requirements.size, .memoryTypeIndex = uint32_t(type) };
++		if (g_device.vk.AllocateMemory(g_device.device(), &allocate, nullptr, &memory) != VK_SUCCESS) {
++			memory = VK_NULL_HANDLE;
++			reset();
++			return false;
++		}
++		if (g_device.vk.BindBufferMemory(g_device.device(), buffer, memory, 0) != VK_SUCCESS) {
++			reset();
++			return false;
++		}
++		if (g_device.vk.MapMemory(g_device.device(), memory, 0, VK_WHOLE_SIZE, 0, &mapped) != VK_SUCCESS) {
++			mapped = nullptr;
++			reset();
++			return false;
++		}
++		capacity = size;
++		return true;
++	}
++	VkBuffer buffer = VK_NULL_HANDLE;
++	void *mapped = nullptr;
++	VkDeviceSize capacity = 0;
++private:
++	void reset()
++	{
++		if (mapped)
++			g_device.vk.UnmapMemory(g_device.device(), memory);
++		if (buffer)
++			g_device.vk.DestroyBuffer(g_device.device(), buffer, nullptr);
++		if (memory)
++			g_device.vk.FreeMemory(g_device.device(), memory, nullptr);
++		buffer = VK_NULL_HANDLE;
++		memory = VK_NULL_HANDLE;
++		mapped = nullptr;
++		capacity = 0;
++	}
++	VkDeviceMemory memory = VK_NULL_HANDLE;
++};
++
+ gamescope::OwningRc<CVulkanTexture> vulkan_create_texture_from_wlr_buffer( struct wlr_buffer *buf, gamescope::OwningRc<gamescope::IBackendFb> pBackendFb )
+ {
+ 
+@@ -5089,7 +5151,6 @@
+ 		return vulkan_create_texture_from_dmabuf( &dmabuf, pBackendFb );
+ 	}
+ 
+-	VkResult result;
+ 
+ 	void *src;
+ 	uint32_t drmFormat;
+@@ -5102,61 +5163,25 @@
+ 	uint32_t width = buf->width;
+ 	uint32_t height = buf->height;
+ 
+-	VkBufferCreateInfo bufferCreateInfo = {
+-		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+-		.size = stride * height,
+-		.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+-	};
+-	VkBuffer buffer;
+-	result = g_device.vk.CreateBuffer( g_device.device(), &bufferCreateInfo, nullptr, &buffer );
+-	if ( result != VK_SUCCESS )
+-	{
+-		wlr_buffer_end_data_ptr_access( buf );
++	if (!height || !stride || stride > SIZE_MAX / height) {
++		wlr_buffer_end_data_ptr_access(buf);
+ 		return nullptr;
+ 	}
+-
+-	VkMemoryRequirements memRequirements;
+-	g_device.vk.GetBufferMemoryRequirements(g_device.device(), buffer, &memRequirements);
+-
+-	uint32_t memTypeIndex =  g_device.findMemoryType(VK_MEMORY_PROPERTY_HOST_COHERENT_BIT|VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, memRequirements.memoryTypeBits );
+-	if ( memTypeIndex == ~0u )
+-	{
+-		wlr_buffer_end_data_ptr_access( buf );
++	const size_t size = stride * height;
++	static std::mutex uploadMutex;
++	std::lock_guard<std::mutex> uploadLock(uploadMutex);
++	static CShmUploadBuffer cachedUpload;
++	CShmUploadBuffer transientUpload;
++	auto& upload = size <= 16 * 1024 * 1024 ? cachedUpload : transientUpload;
++	const bool grew = size > upload.capacity;
++	if (!upload.ensure(size)) {
++		wlr_buffer_end_data_ptr_access(buf);
+ 		return nullptr;
+ 	}
+-
+-	VkMemoryAllocateInfo allocInfo = {
+-		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+-		.allocationSize = memRequirements.size,
+-		.memoryTypeIndex = memTypeIndex,
+-	};
+-
+-	VkDeviceMemory bufferMemory;
+-	result = g_device.vk.AllocateMemory( g_device.device(), &allocInfo, nullptr, &bufferMemory);
+-	if ( result != VK_SUCCESS )
+-	{
+-		wlr_buffer_end_data_ptr_access( buf );
+-		return nullptr;
+-	}
+-
+-	result = g_device.vk.BindBufferMemory( g_device.device(), buffer, bufferMemory, 0 );
+-	if ( result != VK_SUCCESS )
+-	{
+-		wlr_buffer_end_data_ptr_access( buf );
+-		return nullptr;
+-	}
+-
+-	void *dst;
+-	result = g_device.vk.MapMemory( g_device.device(), bufferMemory, 0, VK_WHOLE_SIZE, 0, &dst );
+-	if ( result != VK_SUCCESS )
+-	{
+-		wlr_buffer_end_data_ptr_access( buf );
+-		return nullptr;
+-	}
+-
+-	memcpy( dst, src, stride * height );
+-
+-	g_device.vk.UnmapMemory( g_device.device(), bufferMemory );
++	if (grew && &upload == &cachedUpload)
++		vk_log.infof("SHM staging: retaining %zu bytes", size);
++	// The synchronous wait below protects this mapped buffer's next write.
++	memcpy(upload.mapped, src, size);
+ 
+ 	wlr_buffer_end_data_ptr_access( buf );
+ 
+@@ -5173,15 +5198,12 @@
+ 
+ 	auto cmdBuffer = g_device.commandBuffer();
+ 
+-	cmdBuffer->copyBufferToImage( buffer, 0, stride / DRMFormatGetBPP(drmFormat), pTex);
+-	// TODO: Sync this copyBufferToImage
++	cmdBuffer->copyBufferToImage( upload.buffer, 0, stride / DRMFormatGetBPP(drmFormat), pTex);
+ 
+ 	uint64_t sequence = g_device.submit(std::move(cmdBuffer));
+ 
+ 	g_device.wait(sequence);
+ 
+-	g_device.vk.DestroyBuffer(g_device.device(), buffer, nullptr);
+-	g_device.vk.FreeMemory(g_device.device(), bufferMemory, nullptr);
+ 
+ 	return pTex;
+ }
