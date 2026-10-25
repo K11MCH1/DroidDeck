@@ -52,13 +52,13 @@
     "build": {
       "driver": "panvk",
       "src_repo": "zenithblue-oss/panvk-kbase-android",
-      "src_ref": "917b9b3b5ff62d7f17303c13fa9cc924c0f308a3",
+      "src_ref": "9be6dd63442aaefa95378b4dd8354a1b8c04c40d",
       "kind": "patchset",
       "profile": "g615-v11-csf",
       "kmds": "kbase",
       "build_android": false
     },
-    "note": "The Linux half is built here from zenithblue's newest source (main 917b9b3, 2026-10-24, the RC5 work): Mali-G1-Ultra (v14) memory import fix, smaller tiler heaps and command pools (less memory), X11 surface and damage fixes, vkd3d fork-hang fix, plus this repo's three fixes (sync-file fd leak, provoking-vertex, DRM node). The Android half is the author's official RC4 lowmem (lowmem BC on by default; PANVK_BC_MODE turns it off). RC4's own source was not published, so the halves come from different builds of the same project."
+    "note": "The Linux half is built here from zenithblue's source at 9be6dd6 (2026-10-23, the RC5 work through csf-v11/222; the next patch, 226, needs a pool field only the JM series defines, so it does not build for this profile yet): Mali-G1-Ultra (v14) memory import fix, smaller tiler heaps and command pools (less memory), X11 surface and damage fixes, vkd3d fork-hang fix, plus this repo's three fixes (sync-file fd leak, provoking-vertex, DRM node). The Android half is the author's official RC4 lowmem (lowmem BC on by default; PANVK_BC_MODE turns it off). RC4's own source was not published, so the halves come from different builds of the same project."
   },
   {
     "id": "PanVK-Mali-JM",
