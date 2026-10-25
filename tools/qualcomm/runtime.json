@@ -10,12 +10,12 @@
   },
   "gamescope": {
     "source_commit": "8f212644c46460549035971ab914421180f61a7c",
-    "member_sha256": "0365800c5884d11c1475224eeb7c479bbad24b10d132fb2ecf09674f8f174d50",
+    "member_sha256": "736d9723ff946452e1e884b8c7b284ee8d9f6705da97f3a0fb939caaf926845b",
     "build": {
       "binary": "build/qualcomm-gamescope/gamescope",
       "source": "build/qualcomm-gamescope/source.tar.gz",
-      "source_sha256": "dc1bc55ffe544aee7e70f82e4afd0e9bece445c762fc21b35f2de001fa59cd92",
-      "source_size": 10106471
+      "source_sha256": "1b2fefa1bcb1a1ab25ce585782b2ef3cbe5111303cee754d8d704dab148617ba",
+      "source_size": 10106517
     }
   },
   "wsi": {
