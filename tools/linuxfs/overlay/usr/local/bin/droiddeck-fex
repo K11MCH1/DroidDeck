@@ -687,6 +687,15 @@ def game_environment(env):
         return env
 
 
+def game_presentation(env):
+    if env.get("DROIDDECK_SYSTEM_QUALCOMM") == "1" and env.get("DROIDDECK_QUALCOMM_ZERO_COPY") == "1" \
+            and env.get("BL_QUALCOMM_SHM") != "1":
+        env = dict(env)
+        env.pop("DISABLE_GAMESCOPE_WSI", None)
+        env.pop("WSI_X11_FORCE_SHM", None)
+    return env
+
+
 def appimage_offset(path):
     with open(path, "rb") as f:
         head = f.read(64)
@@ -810,7 +819,8 @@ def main(argv):
             return 0
         if not command:
             return 2
-        return launch(command, game_environment(dict(os.environ)), os.environ.get("DROIDDECK_FEX", "auto"))
+        env = game_presentation(game_environment(dict(os.environ)))
+        return launch(command, env, os.environ.get("DROIDDECK_FEX", "auto"))
     if action == "run":
         try:
             mode, decide, command = parse_run(args)
