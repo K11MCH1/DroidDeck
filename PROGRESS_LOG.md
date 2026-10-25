@@ -2,7 +2,7 @@
 
 Newest first. Devices only; testers are not named here.
 
-## 2026-10-25 — Next test build after c5b25920 (in progress, CI only, not device-tested)
+## 2026-10-25 — Test build c19b5416 on DroidDeck 0.6.0+ (CI only, not device-tested)
 From the 31 logs and 419 messages since c5b25920 (10-19 to 10-24):
 - **Auto left Malis on the runtime's Turnip** ("failed to find physical device", Steam never starts): RP4 Pro (G77) after the JM pair's trial rolled back, Galaxy S21 Ultra (G78), Tab S11 Ultra (G925) and a Dimensity 8100 (G610). Fixed on the APK branch: Auto switches on its stand-in (Venus or the bridge) after a rollback, for a pair on the bad list, and when the driver list cannot be read.
 - **Black screen with the start-up logo** (Poco X7 Pro, G720 MC7): a hand-imported PanVK_G720 Android driver on the display under Auto. Auto now resets any imported display on Mali.
@@ -14,6 +14,8 @@ From the 31 logs and 419 messages since c5b25920 (10-19 to 10-24):
 - **Components:** gamescope p22 (0134 + main's 0116 cursor fix), Venus ICD on Mesa 26.2.5. virglrenderer (1.3.0) and gamescope 3.17 need large rebases; left for later.
 - **APK:** test/non-adreno-all merged with org main c5d7cdc0 (0.6.0+); build.yml takes main's component jobs, the bridge client / glprobe / Xclipse layer build in their own step.
 - Posted to the thread 2026-10-25 (BannerBot): coming-fixes card and one combined reply card to 19 testers.
+- **Published 2026-10-25:** the four signed APKs replaced in place on `droiddeck-test-non-adreno-all` (Test APK release run 40163649963, from Build APK 40162805398 on test/non-adreno-all @c19b5416), release notes and README updated in place. Driver releases replaced in place: radv-xclipse-upstream (run 40159794576), panvk-mali-jm (40159811821), panvk-mali-kbase (40160545462, after 40159794566 failed at zenithblue main), the three faux123 pairs (40161415707). New component releases: gamescope-3.16.29-p22-nonadreno (Droid-Deck/DroidDeck run 40159674290), venus-proto13-e24ed8ab (run 40161447324, Mesa 26.2.5 checked in the binary).
+- **Caught before publishing:** build a7a1ebf1 had no Venus component (the fetch step was lost when build.yml took main's jobs); fixed in c19b5416 and the APK contents checked (Venus server + ICD, Mali layer, bridge server, gamescope p22 binary hash).
 
 ## 2026-10-19 — Test build c5b25920 on DroidDeck 0.5.0 (CI only, not device-tested)
 From the 22 logs sent since c9ebb247 (14 testers):
