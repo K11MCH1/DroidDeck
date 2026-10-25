@@ -7,12 +7,12 @@ Qualcomm bridge, Gamescope, WSI and Mesa versions.
 
 ## Device owner
 
-1. Install the diagnostic APK as an update to the existing test-key build.
-   This APK uses the repository's test signing key. If Android rejects the
-   signature, retain the installed app and report the installer error.
-2. Keep the original failing configuration: system Android display driver and
-   **System Qualcomm driver** as the Linux runtime driver. Fully close and
-   reopen DroidDeck after installation.
+1. Install **DroidDeck A850 Diagnostics** (`com.droiddeck.launcher.a850`). It
+   installs alongside the official app with separate app data and uses the
+   repository's test signing key.
+2. Install the runtime in this separate app and select the original failing
+   configuration: system Android display driver and **System Qualcomm driver**
+   as the Linux runtime driver. Fully close and reopen the diagnostic app.
 3. Launch Steam once. The isolated probes can add up to 45 seconds before
    Gamescope starts. Let the launch finish or return its failure message.
 4. Use **Share logs** and return the complete ZIP. It should contain
@@ -20,8 +20,9 @@ Qualcomm bridge, Gamescope, WSI and Mesa versions.
    `events.jsonl` for the same launch.
 
 No game launch or Steam sign-in is required to reproduce this initialization
-failure. An existing runtime can be reused; the APK also carries the verified
-runtime assets and add-on pack identities required for a fresh installation.
+failure. The APK carries the verified runtime assets and add-on pack identities
+required for this separate installation. It cannot reuse the official app's
+private runtime or settings.
 
 ## Captured evidence
 

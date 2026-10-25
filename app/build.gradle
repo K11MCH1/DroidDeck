@@ -125,7 +125,8 @@ android {
     ndkVersion project.findProperty('ndkVersion') ?: '27.3.13750724'
 
     defaultConfig {
-        applicationId "com.droiddeck.launcher"
+        applicationId "com.droiddeck.launcher.a850"
+        resValue 'string', 'app_name', 'DroidDeck A850 Diagnostics'
         minSdkVersion 26
         targetSdkVersion 28
         versionCode 15
