@@ -1,5 +1,14 @@
 # Experimental Qualcomm backends
 
+The `deep-impact` changes add capability-gated native BC handling, reusable
+Gamescope pipeline keys and persistent caches, bounded SHM staging/snapshot
+reuse, an exact uniform descriptor range, and native Steam presentation through
+the successful Qualcomm probe. See [the implementation and hardware test
+report](PERFORMANCE_DEEP_IMPACT.md) for measurements and remaining limitations.
+Explicit `HYBRIS_BC_TEXTURES` values and per-game `BL_QUALCOMM_SHM=1` overrides
+retain precedence. Steam's browser and ordinary program launch policy are
+unchanged.
+
 The Linux backend uses the installed Qualcomm Vulkan HAL through a pinned libhybris ICD. The Android compositor imports gralloc buffers through `android_wlegl`. Choosing **System Qualcomm driver** in the runtime driver list also selects the system display driver. Restart the app after changing an already loaded display driver.
 
 ## Imported AdrenoTools Qualcomm packages
