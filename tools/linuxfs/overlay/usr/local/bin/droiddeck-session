@@ -104,6 +104,15 @@ collect_steam_logs() {
 trap 'collect_steam_logs 2>/dev/null || true' TERM INT HUP
 if [ "${DROIDDECK_SYSTEM_QUALCOMM:-0}" = 1 ]; then
   echo "== Qualcomm driver source: ${DROIDDECK_QUALCOMM_DRIVER:-system-qualcomm}"
+  if [ -z "${BL_INSIDE:-}" ] && [ -z "${HYBRIS_BC_TEXTURES+x}" ]; then
+    if timeout 10 env HYBRIS_BC_TEXTURES=0 VK_LAYER_PATH="$DROIDDECK_QUALCOMM_ROOT/lib" \
+       VK_INSTANCE_LAYERS=VK_LAYER_HYBRIS_compat /usr/local/bin/droiddeck-qualcomm-native-bc; then
+      export HYBRIS_BC_TEXTURES=0
+      echo "== qualcomm: native BC sampling; emulation tracking disabled"
+    else
+      echo "== qualcomm: retaining BC emulation policy"
+    fi
+  fi
 fi
 if [ -n "${BL_VK_DRIVER:-}" ]; then
   bl_icd_lib=$(sed -n 's/.*"library_path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$BL_VK_DRIVER" 2>/dev/null | head -1)

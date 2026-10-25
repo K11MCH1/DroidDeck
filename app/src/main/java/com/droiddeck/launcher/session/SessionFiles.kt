@@ -59,6 +59,7 @@ object SessionFiles {
             "usr/local/bin/droiddeck-steam-taskset" to "usr/local/bin/droiddeck-steam-taskset",
             "usr/local/bin/droiddeck-steam-taskset" to "usr/local/libexec/droiddeck-steam/taskset",
             "usr/local/bin/droiddeck-qualcomm-caps" to "usr/local/bin/droiddeck-qualcomm-caps",
+            "usr/local/bin/droiddeck-qualcomm-native-bc" to "usr/local/bin/droiddeck-qualcomm-native-bc",
             "usr/local/bin/droiddeck-steam-ui-scale" to "usr/local/bin/droiddeck-steam-ui-scale",
             "usr/local/bin/droiddeck-steam-language" to "usr/local/bin/droiddeck-steam-language",
             "usr/local/bin/droiddeck-steam-desktop-ui" to "usr/local/bin/droiddeck-steam-desktop-ui",

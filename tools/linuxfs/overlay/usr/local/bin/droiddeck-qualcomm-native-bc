@@ -1,0 +1,64 @@
+#!/usr/bin/env python3
+"""Check native BC sampling with HYBRIS_BC_TEXTURES=0 in a separate process."""
+import ctypes as c
+import os
+import sys
+
+
+def probe():
+    if os.environ.get('HYBRIS_BC_TEXTURES') != '0':
+        return False
+    vk = c.CDLL('libvulkan.so.1')
+    handle = c.c_void_p
+    uint = c.c_uint32
+
+    class Application(c.Structure):
+        _fields_ = [('type', uint), ('next', handle), ('name', c.c_char_p), ('version', uint),
+                    ('engine', c.c_char_p), ('engineVersion', uint), ('api', uint)]
+
+    class Instance(c.Structure):
+        _fields_ = [('type', uint), ('next', handle), ('flags', uint), ('application', handle),
+                    ('layerCount', uint), ('layers', handle), ('extensionCount', uint), ('extensions', handle)]
+
+    def function(name, arguments, result=c.c_int):
+        entry = getattr(vk, name)
+        entry.argtypes, entry.restype = arguments, result
+        return entry
+
+    application = Application(0, None, b'droiddeck-native-bc', 1, b'droiddeck', 1, (1 << 22) | (1 << 12))
+    info = Instance(1, None, 0, c.cast(c.pointer(application), handle), 0, None, 0, None)
+    instance = handle()
+    if function('vkCreateInstance', [c.POINTER(Instance), handle, c.POINTER(handle)])(
+            c.byref(info), None, c.byref(instance)) != 0:
+        return False
+    try:
+        enumerate_devices = function('vkEnumeratePhysicalDevices', [handle, c.POINTER(uint), handle])
+        count = uint()
+        if enumerate_devices(instance, c.byref(count), None) != 0 or not count.value:
+            return False
+        devices = (handle * count.value)()
+        if enumerate_devices(instance, c.byref(count), devices) != 0:
+            return False
+        features = function('vkGetPhysicalDeviceFeatures', [handle, handle], None)
+        formats = function('vkGetPhysicalDeviceFormatProperties', [handle, uint, handle], None)
+        for device in devices[:count.value]:
+            supported = (uint * 55)()
+            features(device, supported)
+            if not supported[22]:
+                return False
+            for format_id in range(131, 147):
+                properties = (uint * 3)()
+                formats(device, format_id, properties)
+                if not properties[1] & 1:
+                    return False
+        return True
+    finally:
+        function('vkDestroyInstance', [handle, handle], None)(instance, None)
+
+
+if __name__ == '__main__':
+    try:
+        supported = probe()
+    except Exception:
+        supported = False
+    sys.exit(0 if supported else 1)
