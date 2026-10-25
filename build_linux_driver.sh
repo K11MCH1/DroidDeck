@@ -180,7 +180,8 @@ fetch_patchset(){
 }
 
 # Android-only forks drop the parts of Mesa that only desktop Linux uses (the window-system
-# loader, X11 helpers). Put back any that are missing, from upstream Mesa at MESA_OVERLAY_REF.
+# loader, X11 helpers). Put back any that are missing, from upstream Mesa at MESA_OVERLAY_REF
+# (pinned to the Mesa main commit the v1.7.0 build used, so a rebuild does not move with main).
 restore_desktop_dirs(){
 	local missing=() d
 	for d in src/loader src/x11; do
@@ -191,7 +192,7 @@ restore_desktop_dirs(){
 	[ -f "$mesa/include/drm-uapi/nouveau_drm.h" ] || need_uapi=1
 	[ -f "$mesa/include/vulkan/vulkan_wayland.h" ] || need_uapi=1
 	[ ${#missing[@]} = 0 ] && [ $need_uapi = 0 ] && return 0
-	local ref="${MESA_OVERLAY_REF:-main}" up="$workdir/mesa-upstream"
+	local ref="${MESA_OVERLAY_REF:-45ea3ed8ce649d6b72d1843307a29d9cc3b7704e}" up="$workdir/mesa-upstream"
 	log "restoring ${missing[*]} from upstream Mesa $ref"
 	rm -rf "$up" && git init -q "$up"
 	git -C "$up" remote add origin https://gitlab.freedesktop.org/mesa/mesa.git

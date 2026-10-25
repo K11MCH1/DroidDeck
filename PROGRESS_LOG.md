@@ -2,6 +2,19 @@
 
 Newest first. Devices only; testers are not named here.
 
+## 2026-10-25 — Next test build after c5b25920 (in progress, CI only, not device-tested)
+From the 31 logs and 419 messages since c5b25920 (10-19 to 10-24):
+- **Auto left Malis on the runtime's Turnip** ("failed to find physical device", Steam never starts): RP4 Pro (G77) after the JM pair's trial rolled back, Galaxy S21 Ultra (G78), Tab S11 Ultra (G925) and a Dimensity 8100 (G610). Fixed on the APK branch: Auto switches on its stand-in (Venus or the bridge) after a rollback, for a pair on the bad list, and when the driver list cannot be read.
+- **Black screen with the start-up logo** (Poco X7 Pro, G720 MC7): a hand-imported PanVK_G720 Android driver on the display under Auto. Auto now resets any imported display on Mali.
+- **gamescope assert under Venus** (Pixel 9a, NieR Replicant): `CVulkanTexture::BInit` `!modifiers.empty()` when the nested backend offers no modifier. gamescope patch 0134 tries linear.
+- **Mali bridge driver crash in push descriptors** (Tab S11 Ultra G925, `vkbPushDescRaw`, fault 0x28): testers report ASEbrahim's MaliBridge v0.5.3 much better on the same device. Submodule moved c65062b6 → 224b6e36 (v0.5.3 source).
+- **Venus OpenGL falls back to software on a G720 too** (Tab S10 Ultra), not only G615/G610: Zink gives up right after vkGetPhysicalDeviceProperties2 with no message. Still open.
+- Not driver faults: low-memory kills (S24 FE, G610 8 GB), a VPN without DNS (Steam download failed), Portal 2's 8x MSAA setting on RADV.
+- **Drivers:** kbase Linux half → zenithblue main 917b9b3 (G1-Ultra import fix, memory trims, X11 fixes, vkd3d hang), Android half → RC4 lowmem; JM Android half pinned to v3.0 (was unpinned); faux123 pairs → v1.0.0 (our asset regex missed it); RADV-Xclipse-upstream → v1.8.0 (asset regex narrowed, v1.8.0 has two zips); the RADV Mesa overlay pinned to 45ea3ed8 instead of moving main. Default RADV stays on v1.6.0-RC. G615 / G710 / G720 unchanged (already newest).
+- **Components:** gamescope p22 (0134 + main's 0116 cursor fix), Venus ICD on Mesa 26.2.5. virglrenderer (1.3.0) and gamescope 3.17 need large rebases; left for later.
+- **APK:** test/non-adreno-all merged with org main c5d7cdc0 (0.6.0+); build.yml takes main's component jobs, the bridge client / glprobe / Xclipse layer build in their own step.
+- Posted to the thread 2026-10-25 (BannerBot): coming-fixes card and one combined reply card to 19 testers.
+
 ## 2026-10-19 — Test build c5b25920 on DroidDeck 0.5.0 (CI only, not device-tested)
 From the 22 logs sent since c9ebb247 (14 testers):
 - **Auto could not see any open driver since 10-15:** the app read only the newest 15 releases of this repo, and the venus/gamescope component releases had pushed every PanVK pair and RADV-Xclipse past them. On every Mali, Auto then switched the Mali bridge on and cleared the Linux driver ("only Auto", "the Mali bridge is on until it is", RP4 Pro stopping at "Starting display and audio"). Fixed: this repo is read in one page of 100.
