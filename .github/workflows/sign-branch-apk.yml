@@ -1,0 +1,73 @@
+name: Sign a branch APK
+
+# Signs one Droid-Deck/DroidDeck feature/fix branch build (the Build APK run's artifact) with the
+# DroidDeck release key, standard package only, so it updates an installed DroidDeck in place.
+# The result is a workflow artifact for device testing: no release, no tag.
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Droid-Deck/DroidDeck Build APK run id (a feat/* or fix/* branch)
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Find the run's commit
+        id: run
+        run: |
+          set -euo pipefail
+          read -r sha branch concl < <(gh api "repos/Droid-Deck/DroidDeck/actions/runs/${{ inputs.run_id }}" \
+            --jq '"\(.head_sha) \(.head_branch) \(.conclusion)"')
+          case "$branch" in feat/*|fix/*) ;; *) echo "::error::run is on $branch (only feat/* and fix/* here)"; exit 1;; esac
+          [ "$concl" = success ] || { echo "::error::run concluded $concl"; exit 1; }
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "short=${sha:0:8}" >> "$GITHUB_OUTPUT"
+          echo "slug=$(echo "$branch" | tr '/' '-')" >> "$GITHUB_OUTPUT"
+
+      - name: Check out DroidDeck at that commit (signing tools)
+        uses: actions/checkout@v4
+        with:
+          repository: Droid-Deck/DroidDeck
+          ref: ${{ steps.run.outputs.sha }}
+          path: dd
+          sparse-checkout: |
+            tools/release
+            keystore
+
+      - name: Download the build
+        run: |
+          set -euo pipefail
+          gh run download "${{ inputs.run_id }}" -R Droid-Deck/DroidDeck -n droiddeck-apk -D in
+          ls -la in
+
+      - name: Sign (standard package)
+        env:
+          KEYSTORE_B64: ${{ secrets.DROIDDECK_RELEASE_KEYSTORE_B64 }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.DROIDDECK_RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: droiddeck
+        run: |
+          set -euo pipefail
+          umask 077
+          ks=$RUNNER_TEMP/release.p12
+          base64 -d <<<"$KEYSTORE_B64" > "$ks"
+          export RELEASE_KEYSTORE=$ks
+          export BUILD_TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          apk=$(ls in/*.apk | head -1)
+          mkdir -p out
+          bash dd/tools/release/sign-apk.sh "$apk" standard "out/DroidDeck-${{ steps.run.outputs.slug }}-${{ steps.run.outputs.short }}.apk"
+          rm -f "$ks"
+          (cd out && sha256sum *.apk | tee SHA256SUMS)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DroidDeck-${{ steps.run.outputs.slug }}-${{ steps.run.outputs.short }}-signed
+          path: out/
+          retention-days: 14
