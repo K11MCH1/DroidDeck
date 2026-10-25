@@ -81,7 +81,7 @@ def prNumber = (providers.environmentVariable('DROIDDECK_PR_NUMBER').getOrNull()
 def ciBuild = providers.environmentVariable('GITHUB_ACTIONS').getOrNull() == 'true'
 if (project.hasProperty('reuseInstalledRuntime')) throw new GradleException('All APKs require prepared Linux runtime packages; runtime reuse is not allowed')
 def qualcommRuntime = new groovy.json.JsonSlurper().parse(rootProject.file('tools/qualcomm/runtime.json'))
-def qualcommSources = fileTree(rootProject.file('tools/qualcomm')) { include '*.py', '*.c', '*.json', '*.sh', '**/*.patch' }
+def qualcommSources = fileTree(rootProject.file('tools/qualcomm')) { include '*.py', '*.c', '*.h', '*.json', '*.sh', '**/*.patch' }
 def qualcommDigest = java.security.MessageDigest.getInstance('SHA-256')
 qualcommSources.files.sort { it.name }.each { qualcommDigest.update(it.bytes) }
 def qualcommRevision = qualcommDigest.digest().encodeHex().toString()
