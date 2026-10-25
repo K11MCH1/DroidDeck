@@ -1,0 +1,102 @@
+--- a/src/rendervulkan.cpp
++++ b/src/rendervulkan.cpp
+@@ -40,6 +40,7 @@
+ #include "wlr_end.hpp"
+ 
+ #include "rendervulkan.hpp"
++#include "shm_texture_pool.hpp"
+ #include "main.hpp"
+ #include "steamcompmgr.hpp"
+ #include "log.hpp"
+@@ -5185,16 +5186,22 @@
+ 
+ 	wlr_buffer_end_data_ptr_access( buf );
+ 
+-	gamescope::OwningRc<CVulkanTexture> pTex = new CVulkanTexture();
+-	CVulkanTexture::createFlags texCreateFlags;
+-	texCreateFlags.bSampled = true;
+-	texCreateFlags.bTransferDst = true;
+-	// Swapchain backends sample this synchronous SHM upload locally. They never
+-	// scan it out or forward its DMA-BUF, so external allocation and ownership
+-	// transfers are unnecessary. Keep exportable inputs for the other backends.
+-	texCreateFlags.bFlippable = !GetBackend()->UsesVulkanSwapchain();
+-	if ( pTex->BInit( width, height, 1u, drmFormat, texCreateFlags, nullptr, 0, 0, nullptr, pBackendFb ) == false )
+-		return nullptr;
++	static CShmTexturePool<CVulkanTexture> texturePool;
++	const bool cacheTexture = GetBackend()->UsesVulkanSwapchain() && !pBackendFb;
++	gamescope::OwningRc<CVulkanTexture> pTex = cacheTexture ? texturePool.acquire(width, height, drmFormat) : nullptr;
++	if (pTex && texturePool.reuses() == 1)
++		vk_log.infof("SHM textures: reusing idle snapshots");
++	if (!pTex) {
++		pTex = new CVulkanTexture();
++		CVulkanTexture::createFlags texCreateFlags;
++		texCreateFlags.bSampled = true;
++		texCreateFlags.bTransferDst = true;
++		texCreateFlags.bFlippable = !GetBackend()->UsesVulkanSwapchain();
++		if (!pTex->BInit(width, height, 1u, drmFormat, texCreateFlags, nullptr, 0, 0, nullptr, pBackendFb))
++			return nullptr;
++		if (cacheTexture)
++			texturePool.retain(pTex);
++	}
+ 
+ 	auto cmdBuffer = g_device.commandBuffer();
+ 
+--- /dev/null
++++ b/src/shm_texture_pool.hpp
+@@ -0,0 +1,56 @@
++#pragma once
++
++#include <vector>
++#include "rc.h"
++
++template<typename Texture>
++class CShmTexturePool
++{
++public:
++
++    explicit CShmTexturePool(uint64_t limit = 16 * 1024 * 1024) : m_limit(limit) {}
++
++    gamescope::OwningRc<Texture> acquire(uint32_t width, uint32_t height, uint32_t format)
++    {
++        for (const auto& texture : m_textures) {
++            if (idle(texture) && texture->width() == width && texture->height() == height && texture->drmFormat() == format) {
++                ++m_reuses;
++                return texture;
++            }
++        }
++        return nullptr;
++    }
++
++    void retain(const gamescope::OwningRc<Texture>& texture)
++    {
++        const uint64_t size = texture->totalSize();
++        if (size > m_limit)
++            return;
++        while (m_textures.size() >= 8 || m_bytes > m_limit - size) {
++            auto available = m_textures.end();
++            for (auto entry = m_textures.begin(); entry != m_textures.end(); ++entry)
++                if (idle(*entry)) { available = entry; break; }
++            if (available == m_textures.end())
++                return;
++            m_bytes -= (*available)->totalSize();
++            m_textures.erase(available);
++        }
++        m_textures.push_back(texture);
++        m_bytes += size;
++    }
++
++    uint64_t retainedBytes() const { return m_bytes; }
++    uint64_t reuses() const { return m_reuses; }
++
++private:
++    static bool idle(const gamescope::OwningRc<Texture>& texture)
++    {
++        // Commits and pending GPU commands retain public refs; only the pool may own an idle snapshot.
++        return !texture->IsInUse() && texture->GetRefCountPrivate() == 1;
++    }
++
++    uint64_t m_limit;
++    uint64_t m_bytes = 0;
++    uint64_t m_reuses = 0;
++    std::vector<gamescope::OwningRc<Texture>> m_textures;
++};
