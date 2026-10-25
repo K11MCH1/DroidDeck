@@ -98,6 +98,7 @@ object QualcommSystemDriver {
             // The compat layer's Mali-only image-bounds pass rewrites unrelated OpSelects; DXVK comparisons become constants on Adreno.
             "HYBRIS_VULKAN_COMPAT_IMAGE_BOUNDS=0",
             "DROIDDECK_SYSTEM_QUALCOMM=1", "BL_GAMESCOPE_BACKEND=sdl",
+            "DROIDDECK_VULKAN_DIAGNOSTICS=1",
             "DROIDDECK_QUALCOMM_DRIVER=$id",
             "BL_GAMESCOPE_BINARY=${File(dir, "bin/gamescope").path}",
             "DROIDDECK_QUALCOMM_ROOT=${dir.path}",

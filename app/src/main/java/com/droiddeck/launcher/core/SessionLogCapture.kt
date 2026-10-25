@@ -15,17 +15,19 @@ object SessionLogCapture {
     private var syncer: Thread? = null
 
     @Synchronized
-    fun start(target: File) {
+    fun start(target: File, includeChildren: Boolean = false) {
         stop()
         try {
             val out = target.bufferedWriter()
-            out.write("The app's own log for this session (logcat, this process only).\n")
+            out.write(if (includeChildren) "The app and its child processes (logcat filtered to the app UID).\n"
+                else "The app's own log for this session (logcat, this process only).\n")
             out.write("Lines the app wrote before the session folder existed are in logcat only.\n\n")
             out.flush()
             writer = out
             this.target = target
             pid = HostProcess.start(
-                "/system/bin/logcat -v threadtime -T 1 --pid=" + Process.myPid(),
+                "/system/bin/logcat -v threadtime -T 1 " +
+                    if (includeChildren) "--uid=" + Process.myUid() else "--pid=" + Process.myPid(),
                 null, target.parentFile, null,
             ) { line ->
                 synchronized(this) {

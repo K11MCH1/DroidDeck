@@ -11,6 +11,21 @@ static int gamescope;
 static PFN_vkVoidFunction VKAPI_CALL instance_proc(VkInstance, const char *);
 static PFN_vkVoidFunction VKAPI_CALL device_proc(VkDevice, const char *);
 
+static void log_instance_request(const VkInstanceCreateInfo *info) {
+    const VkApplicationInfo *app = info->pApplicationInfo;
+    uint32_t api = app ? app->apiVersion : VK_API_VERSION_1_0;
+    fprintf(stderr, "A850-DIAG: Gamescope vkCreateInstance API=%u.%u.%u flags=0x%x\n",
+        VK_API_VERSION_MAJOR(api), VK_API_VERSION_MINOR(api), VK_API_VERSION_PATCH(api), info->flags);
+    for (uint32_t i = 0; i < info->enabledExtensionCount; i++)
+        fprintf(stderr, "A850-DIAG: requested extension[%u]=%s\n", i, info->ppEnabledExtensionNames[i]);
+    for (uint32_t i = 0; i < info->enabledLayerCount; i++)
+        fprintf(stderr, "A850-DIAG: requested layer[%u]=%s\n", i, info->ppEnabledLayerNames[i]);
+    const VkBaseInStructure *node = info->pNext;
+    for (unsigned i = 0; node && i < 32; i++, node = node->pNext)
+        fprintf(stderr, "A850-DIAG: instance pNext[%u].sType=%d\n", i, node->sType);
+    fflush(stderr);
+}
+
 static VkResult VKAPI_CALL create_instance(const VkInstanceCreateInfo *info, const VkAllocationCallbacks *allocator, VkInstance *instance) {
     VkLayerInstanceCreateInfo *chain = (void *)info->pNext;
     while (chain && (chain->sType != VK_STRUCTURE_TYPE_LOADER_INSTANCE_CREATE_INFO || chain->function != VK_LAYER_LINK_INFO)) chain = (void *)chain->pNext;
@@ -20,7 +35,18 @@ static VkResult VKAPI_CALL create_instance(const VkInstanceCreateInfo *info, con
         !strcmp(info->pApplicationInfo->pApplicationName, "gamescope");
     PFN_vkCreateInstance create = (void *)next_instance(0, "vkCreateInstance");
     chain->u.pLayerInfo = chain->u.pLayerInfo->pNext;
-    return create(info, allocator, instance);
+    int diagnostic = gamescope && getenv("DROIDDECK_VULKAN_DIAGNOSTICS");
+    if (diagnostic) {
+        log_instance_request(info);
+        fprintf(stderr, "A850-DIAG: allocation callbacks=%s\n", allocator ? "custom" : "none");
+        fflush(stderr);
+    }
+    VkResult result = create(info, allocator, instance);
+    if (diagnostic) {
+        fprintf(stderr, "A850-DIAG: Gamescope downstream vkCreateInstance result=%d\n", result);
+        fflush(stderr);
+    }
+    return result;
 }
 
 static VkResult VKAPI_CALL create_device(VkPhysicalDevice physical, const VkDeviceCreateInfo *info, const VkAllocationCallbacks *allocator, VkDevice *device) {

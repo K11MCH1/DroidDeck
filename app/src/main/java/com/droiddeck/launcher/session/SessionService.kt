@@ -665,7 +665,8 @@ class SessionService : Service() {
         SessionEvents.record("session.logs_ready", mapOf("logDir" to sessionDir.path))
         DeviceReport.write(this, File(sessionDir, "device.txt"), SessionState.mode)
         NetworkReport.write(this, File(sessionDir, "network.txt"))
-        SessionLogCapture.start(File(sessionDir, "app.log"))
+        SessionLogCapture.start(File(sessionDir, "app.log"),
+            com.droiddeck.launcher.gpu.QualcommSystemDriver.selected(this))
         return sessionDir
     }
 

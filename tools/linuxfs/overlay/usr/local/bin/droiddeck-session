@@ -262,6 +262,12 @@ if [ -z "${BL_INSIDE:-}" ]; then
     echo "== gamescope: mangoapp on ($(command -v mangoapp), config $MANGOHUD_CONFIGFILE)"
   fi
   export BL_INSIDE=1
+  if [ "${DROIDDECK_VULKAN_DIAGNOSTICS:-0}" = 1 ] && [ -n "${BL_DEBUG_DIR:-}" ]; then
+    echo "== A850 Vulkan diagnostics starting (up to 45 seconds)"
+    timeout -k 1 45 python3 /usr/local/bin/droiddeck-vulkan-diagnostics > "$BL_DEBUG_DIR/vulkan-diagnostics.log" 2>&1
+    echo "== A850 Vulkan diagnostics finished: status $?; continuing with Gamescope"
+    export VK_LOADER_DEBUG=error,warn,driver,layer
+  fi
   if [ "$mode" = steam ]; then
     if /usr/local/bin/droiddeck-pipewire start; then
       eval "$(/usr/local/bin/droiddeck-pipewire env)"

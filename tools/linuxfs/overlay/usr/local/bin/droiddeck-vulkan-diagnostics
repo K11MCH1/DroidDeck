@@ -1,0 +1,187 @@
+#!/usr/bin/env python3
+"""Isolate Vulkan startup calls in disposable processes before Gamescope starts."""
+import ctypes as c
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+
+U = c.c_uint32
+H = c.c_void_p
+RESULTS = {0: 'VK_SUCCESS', 1: 'VK_NOT_READY', -3: 'VK_ERROR_INITIALIZATION_FAILED',
+           -6: 'VK_ERROR_LAYER_NOT_PRESENT', -7: 'VK_ERROR_EXTENSION_NOT_PRESENT',
+           -9: 'VK_ERROR_INCOMPATIBLE_DRIVER'}
+WSI = ('VK_KHR_surface', 'VK_KHR_wayland_surface')
+
+
+class Application(c.Structure):
+    _fields_ = [('type', U), ('next', H), ('name', c.c_char_p), ('version', U),
+                ('engine', c.c_char_p), ('engineVersion', U), ('api', U)]
+
+
+class Instance(c.Structure):
+    _fields_ = [('type', U), ('next', H), ('flags', U), ('application', c.POINTER(Application)),
+                ('layerCount', U), ('layers', c.POINTER(c.c_char_p)),
+                ('extensionCount', U), ('extensions', c.POINTER(c.c_char_p))]
+
+
+class Extension(c.Structure):
+    _fields_ = [('name', c.c_char * 256), ('version', U)]
+
+
+def emit(event, **values):
+    print(json.dumps(dict(event=event, **values), sort_keys=True), flush=True)
+
+
+def function(address, result, *arguments):
+    if not address:
+        raise RuntimeError('Vulkan entry point is unavailable')
+    return c.CFUNCTYPE(result, *arguments)(address)
+
+
+def resolver(backend):
+    root = Path(os.environ['DROIDDECK_QUALCOMM_ROOT'])
+    if backend == 'android':
+        bridge = c.CDLL(str(root / 'lib/libhybris-common.so.1'), mode=c.RTLD_GLOBAL)
+        bridge.hybris_dlopen.argtypes = [c.c_char_p, c.c_int]
+        bridge.hybris_dlopen.restype = H
+        bridge.hybris_dlsym.argtypes = [H, c.c_char_p]
+        bridge.hybris_dlsym.restype = H
+        library = bridge.hybris_dlopen(b'/system/lib64/libvulkan.so', os.RTLD_NOW)
+        if not library:
+            raise RuntimeError('hybris could not open the Android Vulkan loader')
+        address = bridge.hybris_dlsym(library, b'vkGetInstanceProcAddr')
+        return function(address, H, H, c.c_char_p), bridge
+    library = c.CDLL(str(root / 'lib/libhybris-vulkan-icd.so.0') if backend == 'icd'
+                     else 'libvulkan.so.1')
+    if backend == 'icd':
+        version = U(5)
+        negotiate = library.vk_icdNegotiateLoaderICDInterfaceVersion
+        negotiate.argtypes, negotiate.restype = [c.POINTER(U)], c.c_int
+        result = negotiate(c.byref(version))
+        emit('icd.negotiate', result=result, version=version.value)
+        if result:
+            raise RuntimeError('ICD negotiation failed')
+    get = getattr(library, 'vk_icdGetInstanceProcAddr' if backend == 'icd' else 'vkGetInstanceProcAddr')
+    get.argtypes, get.restype = [H, c.c_char_p], H
+    return get, library
+
+
+def mapped_libraries():
+    try:
+        paths = sorted({line.split()[-1] for line in Path('/proc/self/maps').read_text().splitlines()
+                        if any(word in line for word in ('libvulkan', 'vulkan.ad', 'hybris', 'VkLayer'))})
+        emit('process.libraries', paths=paths)
+    except OSError as error:
+        emit('process.libraries.unavailable', error=str(error))
+
+
+def child(backend, minor, wsi=False):
+    emit('probe.start', backend=backend, api=f'1.{minor}.0', wsi=wsi, pid=os.getpid())
+    get, keep_alive = resolver(backend)
+    version = U(1 << 22)
+    address = get(None, b'vkEnumerateInstanceVersion')
+    if address:
+        result = function(address, c.c_int, c.POINTER(U))(c.byref(version))
+        emit('instance.version', result=result, raw=version.value)
+    enumerate_extensions = function(get(None, b'vkEnumerateInstanceExtensionProperties'),
+                                    c.c_int, c.c_char_p, c.POINTER(U), c.POINTER(Extension))
+    count = U()
+    result = enumerate_extensions(None, c.byref(count), None)
+    emit('extensions.count', result=result, count=count.value)
+    if result != 0 or count.value > 4096:
+        raise RuntimeError('Instance extension enumeration failed')
+    extensions = (Extension * count.value)()
+    result = enumerate_extensions(None, c.byref(count), extensions)
+    emit('extensions.list', result=result, names=[entry.name.decode(errors='replace') for entry in extensions])
+    if result != 0:
+        raise RuntimeError('Instance extension enumeration was incomplete')
+    names = (c.c_char_p * len(WSI))(*[name.encode() for name in WSI]) if wsi else None
+    app = Application(type=0, name=b'gamescope', version=1 << 22,
+                      engine=b'hopefully not just some code', engineVersion=1 << 22,
+                      api=(1 << 22) | (minor << 12))
+    info = Instance(type=1, application=c.pointer(app), extensionCount=len(WSI) if wsi else 0,
+                    extensions=names)
+    create = function(get(None, b'vkCreateInstance'), c.c_int, c.POINTER(Instance), H, c.POINTER(H))
+    instance = H()
+    emit('instance.creating', extensions=list(WSI) if wsi else [], flags=0, allocator='none', pnext=[])
+    result = create(c.byref(info), None, c.byref(instance))
+    emit('instance.result', result=result, name=RESULTS.get(result, 'other'), handle_present=bool(instance))
+    mapped_libraries()
+    if result == 0:
+        if not instance:
+            raise RuntimeError('Successful instance creation returned no handle')
+        destroy = function(get(instance, b'vkDestroyInstance'), None, H, H)
+        destroy(instance, None)
+        emit('instance.destroyed')
+    return 0 if result == 0 else 1
+
+
+def run_case(backend, minor, wsi=False, layers=True):
+    environment = os.environ.copy()
+    environment['VK_LOADER_DEBUG'] = 'error,warn,driver,layer'
+    if not layers:
+        environment.pop('VK_INSTANCE_LAYERS', None)
+        environment['VK_LOADER_LAYERS_DISABLE'] = '~implicit~'
+    command = [sys.executable, '-u', str(Path(__file__).resolve()), '--child', backend, str(minor)]
+    if wsi:
+        command.append('--wsi')
+    started = time.monotonic()
+    try:
+        completed = subprocess.run(command, env=environment, stdout=subprocess.PIPE,
+                                   stderr=subprocess.STDOUT, timeout=4)
+        output = completed.stdout.decode(errors='replace')
+        print(output, end='' if output.endswith('\n') else '\n', flush=True)
+        status = completed.returncode
+    except subprocess.TimeoutExpired as error:
+        print((error.stdout or b'').decode(errors='replace'), flush=True)
+        status = 'timeout'
+    emit('probe.complete', backend=backend, api=f'1.{minor}.0', wsi=wsi, layers=layers,
+         status=status, elapsed_ms=round((time.monotonic() - started) * 1000))
+
+
+def main():
+    emit('diagnostics.start', schema=1)
+    keys = ('DROIDDECK_QUALCOMM_DRIVER', 'DROIDDECK_QUALCOMM_ROOT', 'HYBRIS_ANDROID_SDK_VERSION',
+            'HYBRIS_VULKAN_HAL', 'HYBRIS_LINKER_DIR', 'HYBRIS_LD_LIBRARY_PATH',
+            'VK_DRIVER_FILES', 'VK_ICD_FILENAMES', 'VK_INSTANCE_LAYERS', 'VK_LAYER_PATH',
+            'LD_LIBRARY_PATH', 'LD_PRELOAD', 'GLIBC_TUNABLES')
+    emit('environment', values={key: os.environ.get(key) for key in keys})
+    for name in ('VK_DRIVER_FILES', 'VK_ICD_FILENAMES'):
+        path = os.environ.get(name)
+        if path:
+            try:
+                emit('manifest', variable=name, content=json.loads(Path(path).read_text()))
+            except (OSError, ValueError) as error:
+                emit('manifest.unavailable', variable=name, error=str(error))
+    for path in ('/system/lib64/libvulkan.so', '/vendor/lib64/hw/vulkan.adreno.so'):
+        try:
+            with open(path, 'rb') as source:
+                checksum = hashlib.sha256()
+                for block in iter(lambda: source.read(1024 * 1024), b''):
+                    checksum.update(block)
+            emit('library.identity', path=path, sha256=checksum.hexdigest())
+        except OSError as error:
+            emit('library.identity.unavailable', path=path, error=str(error))
+    for minor in (0, 3, 4):
+        run_case('linux', minor)
+    run_case('linux', 3, wsi=True)
+    run_case('linux', 3, wsi=True, layers=False)
+    for backend in ('icd', 'android'):
+        for minor in (0, 3):
+            run_case(backend, minor, layers=False)
+    emit('diagnostics.complete')
+
+
+if __name__ == '__main__':
+    try:
+        if len(sys.argv) > 1 and sys.argv[1] == '--child':
+            sys.exit(child(sys.argv[2], int(sys.argv[3]), '--wsi' in sys.argv))
+        main()
+    except Exception as error:
+        emit('diagnostics.error', error=str(error))
+        sys.exit(2)
