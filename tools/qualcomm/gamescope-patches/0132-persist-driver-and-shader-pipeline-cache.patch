@@ -1,0 +1,212 @@
+--- a/src/rendervulkan.cpp
++++ b/src/rendervulkan.cpp
+@@ -10,6 +10,10 @@
+ #include <array>
+ #include <bitset>
+ #include <deque>
++#include <filesystem>
++#include <chrono>
++#include <fstream>
++#include <shared_mutex>
+ #include <dlfcn.h>
+ #include "vulkan_include.h"
+ #include "nested_swapchain.hpp"
+@@ -323,6 +327,8 @@
+ 		return false;
+ 
+ 	m_bInitialized = true;
++
++	createPipelineCache();
+ 
+ 	m_pipelineThread = std::jthread([this](std::stop_token st){compileAllPipelines(st);});
+ 
+@@ -1051,6 +1057,9 @@
+ 			.pCode = shaderInfos[i].spirv,
+ 		};
+ 
++		const auto *bytes = reinterpret_cast<const uint8_t *>(shaderInfos[i].spirv);
++		for (uint32_t j = 0; j < shaderInfos[i].size; ++j)
++			m_pipelineShaderHash = (m_pipelineShaderHash ^ bytes[j]) * 1099511628211ull;
+ 		VkResult res = vk.CreateShaderModule(device(), &shaderCreateInfo, nullptr, &m_shaderModules[i]);
+ 		if ( res != VK_SUCCESS )
+ 		{
+@@ -1248,7 +1257,8 @@
+ 
+ 	VkPipeline result;
+ 
+-	VkResult res = vk.CreateComputePipelines(device(), VK_NULL_HANDLE, 1, &computePipelineCreateInfo, nullptr, &result);
++	std::shared_lock<std::shared_mutex> cacheLock(m_pipelineCacheMutex);
++	VkResult res = vk.CreateComputePipelines(device(), m_pipelineCache, 1, &computePipelineCreateInfo, nullptr, &result);
+ 	if (res != VK_SUCCESS) {
+ 		vk_errorf( res, "vkCreateComputePipelines failed" );
+ 		return VK_NULL_HANDLE;
+@@ -1257,6 +1267,95 @@
+ 	return result;
+ }
+ 
++static uint64_t cache_hash(const std::vector<char>& data)
++{
++	uint64_t hash = 14695981039346656037ull;
++	for (unsigned char byte : data)
++		hash = (hash ^ byte) * 1099511628211ull;
++	return hash;
++}
++
++void CVulkanDevice::createPipelineCache()
++{
++	VkPhysicalDeviceProperties properties{};
++	vk.GetPhysicalDeviceProperties(physDev(), &properties);
++	char identity[160];
++	int used = snprintf(identity, sizeof(identity), "v1-%x-%x-%x-%016llx-", properties.vendorID,
++	                    properties.deviceID, properties.driverVersion, (unsigned long long)m_pipelineShaderHash);
++	for (unsigned char byte : properties.pipelineCacheUUID)
++		used += snprintf(identity + used, sizeof(identity) - used, "%02x", byte);
++	const char *cacheHome = getenv("XDG_CACHE_HOME");
++	const char *home = getenv("HOME");
++	std::filesystem::path directory;
++	if (cacheHome && *cacheHome)
++		directory = std::filesystem::path(cacheHome) / "gamescope/pipelines";
++	else if (home && *home)
++		directory = std::filesystem::path(home) / ".cache/gamescope/pipelines";
++	std::vector<char> data;
++	if (!directory.empty()) {
++		std::error_code error;
++		std::filesystem::create_directories(directory, error);
++		if (!error) {
++			m_pipelineCachePath = (directory / (std::string(identity) + ".bin")).string();
++			std::ifstream file(m_pipelineCachePath, std::ios::binary);
++			uint64_t header[3]{};
++			if (file.read(reinterpret_cast<char *>(header), sizeof(header)) &&
++			    header[0] == 0x3148434143504444ull && header[1] >= sizeof(VkPipelineCacheHeaderVersionOne) &&
++			    header[1] <= 64 * 1024 * 1024) {
++				data.resize(header[1]);
++				if (!file.read(data.data(), data.size()) || file.peek() != EOF || cache_hash(data) != header[2])
++					data.clear();
++				if (!data.empty()) {
++					VkPipelineCacheHeaderVersionOne vkHeader;
++					memcpy(&vkHeader, data.data(), sizeof(vkHeader));
++					if (vkHeader.headerSize < sizeof(vkHeader) || vkHeader.headerSize > data.size() ||
++					    vkHeader.headerVersion != VK_PIPELINE_CACHE_HEADER_VERSION_ONE ||
++					    vkHeader.vendorID != properties.vendorID || vkHeader.deviceID != properties.deviceID ||
++					    memcmp(vkHeader.pipelineCacheUUID, properties.pipelineCacheUUID, VK_UUID_SIZE))
++						data.clear();
++				}
++			}
++		}
++	}
++	VkPipelineCacheCreateInfo info{ .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
++	                               .initialDataSize = data.size(), .pInitialData = data.data() };
++	VkResult result = vk.CreatePipelineCache(device(), &info, nullptr, &m_pipelineCache);
++	if (result != VK_SUCCESS && !data.empty()) {
++		info.initialDataSize = 0;
++		info.pInitialData = nullptr;
++		result = vk.CreatePipelineCache(device(), &info, nullptr, &m_pipelineCache);
++		data.clear();
++	}
++	if (result != VK_SUCCESS)
++		m_pipelineCache = VK_NULL_HANDLE;
++	vk_log.infof("Pipeline cache: %zu bytes loaded, %s", data.size(), m_pipelineCache ? "enabled" : "unavailable");
++}
++
++void CVulkanDevice::savePipelineCache()
++{
++	std::unique_lock<std::shared_mutex> lock(m_pipelineCacheMutex);
++	if (!m_pipelineCache || m_pipelineCachePath.empty())
++		return;
++	size_t size = 0;
++	if (vk.GetPipelineCacheData(device(), m_pipelineCache, &size, nullptr) != VK_SUCCESS ||
++	    size < sizeof(VkPipelineCacheHeaderVersionOne) || size > 64 * 1024 * 1024)
++		return;
++	std::vector<char> data(size);
++	if (vk.GetPipelineCacheData(device(), m_pipelineCache, &size, data.data()) != VK_SUCCESS)
++		return;
++	data.resize(size);
++	const uint64_t header[] = {0x3148434143504444ull, data.size(), cache_hash(data)};
++	const std::string temporary = m_pipelineCachePath + "." + std::to_string(getpid()) + ".tmp";
++	std::ofstream file(temporary, std::ios::binary | std::ios::trunc);
++	file.write(reinterpret_cast<const char *>(header), sizeof(header));
++	file.write(data.data(), data.size());
++	file.close();
++	if (!file || rename(temporary.c_str(), m_pipelineCachePath.c_str()))
++		unlink(temporary.c_str());
++	else
++		vk_log.infof("Pipeline cache: saved %zu bytes", data.size());
++}
++
+ static PipelineInfo_t pipeline_info(ShaderType type, uint32_t layers, uint32_t ycbcr, uint32_t blur,
+                                     uint32_t debug, uint32_t colorspace, uint32_t output, bool itm)
+ {
+@@ -1268,6 +1367,7 @@
+ void CVulkanDevice::compileAllPipelines(std::stop_token st)
+ {
+ 	pthread_setname_np( pthread_self(), "gamescope-shdr" );
++	const auto started = std::chrono::steady_clock::now();
+ 
+ 	std::array<PipelineInfo_t, SHADER_TYPE_COUNT> pipelineInfos;
+ #define SHADER(type, layer_count, max_ycbcr, blur_layers) pipelineInfos[SHADER_TYPE_##type] = {SHADER_TYPE_##type, layer_count, max_ycbcr, blur_layers}
+@@ -1291,7 +1391,7 @@
+ 					if (blur_layers > layerCount)
+ 						continue;
+ 
+-					if (st.stop_requested()) return;
++					if (st.stop_requested()) { savePipelineCache(); return; }
+ 					PipelineInfo_t key = pipeline_info(info.shaderType, layerCount, ycbcrMask, blur_layers,
+ 					                                  info.compositeDebug, info.colorspaceMask, info.outputEOTF, info.itmEnable);
+ 					VkPipeline newPipeline = compilePipeline(key.layerCount, key.ycbcrMask, key.shaderType, key.blurLayerCount,
+@@ -1300,6 +1400,7 @@
+ 						std::lock_guard<std::mutex> lock(m_pipelineMutex);
+ 						if (st.stop_requested()) {
+ 							vk.DestroyPipeline(device(), newPipeline, nullptr);
++							savePipelineCache();
+ 							return;
+ 						}
+ 						auto result = m_pipelineMap.emplace(std::make_pair(key, newPipeline));
+@@ -1310,6 +1411,8 @@
+ 			}
+ 		}
+ 	}
++	savePipelineCache();
++	vk_log.infof("Precompiled pipelines in %.3f seconds", std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count());
+ }
+ 
+ extern bool g_bSteamIsActiveWindow;
+--- a/src/rendervulkan.hpp
++++ b/src/rendervulkan.hpp
+@@ -10,6 +10,7 @@
+ #include <array>
+ #include <bitset>
+ #include <mutex>
++#include <shared_mutex>
+ #include <optional>
+ #include <thread>
+ 
+@@ -763,6 +764,9 @@
+ 	VK_FUNC(CreateImage) \
+ 	VK_FUNC(CreateImageView) \
+ 	VK_FUNC(CreatePipelineLayout) \
++	VK_FUNC(CreatePipelineCache) \
++	VK_FUNC(GetPipelineCacheData) \
++	VK_FUNC(DestroyPipelineCache) \
+ 	VK_FUNC(CreateQueryPool) \
+ 	VK_FUNC(CreateSampler) \
+ 	VK_FUNC(CreateSamplerYcbcrConversion) \
+@@ -912,6 +916,8 @@
+ 	bool createLayouts();
+ 	bool createPools();
+ 	bool createShaders();
++	void createPipelineCache();
++	void savePipelineCache();
+ 	bool createScratchResources();
+ 	VkPipeline compilePipeline(uint32_t layerCount, uint32_t ycbcrMask, ShaderType type, uint32_t blur_layer_count, uint32_t composite_debug, uint32_t colorspace_mask, uint32_t output_eotf, bool itm_enable);
+ 	void compileAllPipelines(std::stop_token st);
+@@ -951,6 +957,10 @@
+ 	std::array<VkShaderModule, SHADER_TYPE_COUNT> m_shaderModules;
+ 	std::unordered_map<PipelineInfo_t, VkPipeline> m_pipelineMap;
+ 	std::mutex m_pipelineMutex;
++	VkPipelineCache m_pipelineCache = VK_NULL_HANDLE;
++	std::shared_mutex m_pipelineCacheMutex;
++	std::string m_pipelineCachePath;
++	uint64_t m_pipelineShaderHash = 14695981039346656037ull;
+ 
+ 	static constexpr uint32_t k_uMaxConcurrentSubmits = 8;
+ 
