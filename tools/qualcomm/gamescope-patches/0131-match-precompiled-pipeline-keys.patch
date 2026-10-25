@@ -1,0 +1,58 @@
+--- a/src/rendervulkan.cpp
++++ b/src/rendervulkan.cpp
+@@ -1257,6 +1257,14 @@
+ 	return result;
+ }
+ 
++static PipelineInfo_t pipeline_info(ShaderType type, uint32_t layers, uint32_t ycbcr, uint32_t blur,
++                                    uint32_t debug, uint32_t colorspace, uint32_t output, bool itm)
++{
++	if (type != SHADER_TYPE_BLUR && type != SHADER_TYPE_BLUR_COND)
++		blur = 0;
++	return {type, layers, ycbcr, blur, debug, colorspace, output, itm};
++}
++
+ void CVulkanDevice::compileAllPipelines(std::stop_token st)
+ {
+ 	pthread_setname_np( pthread_self(), "gamescope-shdr" );
+@@ -1278,16 +1286,22 @@
+ 		for (uint32_t layerCount = 1; layerCount <= info.layerCount; layerCount++) {
+ 			for (uint32_t ycbcrMask = 0; ycbcrMask < info.ycbcrMask; ycbcrMask++) {
+ 				for (uint32_t blur_layers = 1; blur_layers <= info.blurLayerCount; blur_layers++) {
+-					if (ycbcrMask >= (1u << (layerCount + 1)))
++					if (ycbcrMask >= (1u << layerCount))
+ 						continue;
+ 					if (blur_layers > layerCount)
+ 						continue;
+ 
+-					VkPipeline newPipeline = compilePipeline(layerCount, ycbcrMask, info.shaderType, blur_layers, info.compositeDebug, info.colorspaceMask, info.outputEOTF, info.itmEnable);
++					if (st.stop_requested()) return;
++					PipelineInfo_t key = pipeline_info(info.shaderType, layerCount, ycbcrMask, blur_layers,
++					                                  info.compositeDebug, info.colorspaceMask, info.outputEOTF, info.itmEnable);
++					VkPipeline newPipeline = compilePipeline(key.layerCount, key.ycbcrMask, key.shaderType, key.blurLayerCount,
++					                                         key.compositeDebug, key.colorspaceMask, key.outputEOTF, key.itmEnable);
+ 					{
+ 						std::lock_guard<std::mutex> lock(m_pipelineMutex);
+-						PipelineInfo_t key = {info.shaderType, layerCount, ycbcrMask, blur_layers, info.compositeDebug};
+-						if (st.stop_requested()) return;
++						if (st.stop_requested()) {
++							vk.DestroyPipeline(device(), newPipeline, nullptr);
++							return;
++						}
+ 						auto result = m_pipelineMap.emplace(std::make_pair(key, newPipeline));
+ 						if (!result.second)
+ 							vk.DestroyPipeline(device(), newPipeline, nullptr);
+@@ -1307,11 +1321,11 @@
+ 		effective_debug &= ~(CompositeDebugFlag::Heatmap | CompositeDebugFlag::Heatmap_MSWCG | CompositeDebugFlag::Heatmap_Hard);
+ 
+ 	std::lock_guard<std::mutex> lock(m_pipelineMutex);
+-	PipelineInfo_t key = {type, layerCount, ycbcrMask, blur_layers, effective_debug, colorspace_mask, output_eotf, itm_enable};
++	PipelineInfo_t key = pipeline_info(type, layerCount, ycbcrMask, blur_layers, effective_debug, colorspace_mask, output_eotf, itm_enable);
+ 	auto search = m_pipelineMap.find(key);
+ 	if (search == m_pipelineMap.end())
+ 	{
+-		VkPipeline result = compilePipeline(layerCount, ycbcrMask, type, blur_layers, effective_debug, colorspace_mask, output_eotf, itm_enable);
++		VkPipeline result = compilePipeline(key.layerCount, key.ycbcrMask, key.shaderType, key.blurLayerCount, key.compositeDebug, key.colorspaceMask, key.outputEOTF, key.itmEnable);
+ 		m_pipelineMap[key] = result;
+ 		return result;
+ 	}
