@@ -1,0 +1,23 @@
+name: RADV-Xclipse
+on:
+  workflow_dispatch:
+    inputs:
+      src_ref:
+        description: Source branch, tag or commit to build (default = v1.6.0-RC, the build testers use; keep it unless replacing the default driver)
+        default: 05b3092fcc9040852a8bff20d19dd8bbed31a1c7
+  push:
+    branches: [main]
+    paths: ['.github/workflows/radv-xclipse.yml']
+permissions:
+  contents: write
+jobs:
+  driver:
+    uses: ./.github/workflows/_driver.yml
+    with:
+      id: RADV-Xclipse
+      driver: radv
+      src_repo: JimVulkan/radv-xclipse
+      src_ref: ${{ inputs.src_ref || '05b3092fcc9040852a8bff20d19dd8bbed31a1c7' }}
+      kind: git
+      profile: ''
+      kmds: 'kbase,panfrost'

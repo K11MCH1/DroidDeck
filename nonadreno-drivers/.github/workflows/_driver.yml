@@ -1,0 +1,131 @@
+# Shared recipe: build one driver's Linux half, package its pair, and replace that driver's own
+# release in place. Each driver has a small workflow that calls this one.
+name: driver
+on:
+  workflow_call:
+    inputs:
+      id: {type: string, required: true}
+      driver: {type: string, required: true}
+      src_repo: {type: string, required: true}
+      src_ref: {type: string, required: true}
+      kind: {type: string, default: git}
+      profile: {type: string, default: ''}
+      kmds: {type: string, default: 'kbase,panfrost'}
+      build_android: {type: boolean, default: true}
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build unzip flex bison cmake glslang-tools curl pkg-config \
+            gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu \
+            python3-pip zip patch tar zstd xz-utils libexpat1-dev zlib1g-dev patchelf
+          if [ "${{ inputs.driver }}" = panvk ]; then
+            # Host-only: mesa_clc / panfrost_compile compile PanVK's OpenCL kernels at build time.
+            sudo apt-get install -y llvm-18-dev libclang-18-dev libclang-cpp18-dev clang-18 \
+              libclc-18-dev libclc-18 libllvmspirvlib-18-dev llvm-spirv-18 spirv-tools \
+              libdrm-dev libpolly-18-dev
+            sudo ln -sf /usr/bin/llvm-config-18 /usr/local/bin/llvm-config
+          fi
+          pip3 install --break-system-packages 'meson>=1.5' mako pyyaml packaging ply pycparser
+      # Libraries an Android driver half may need beside it (libdrm_full, zlib, zstd, libc++_shared);
+      # make_release.py ships the ones the driver actually NEEDs.
+      - name: Build Android dependency libraries
+        run: ANDROID_NDK_HOME="$ANDROID_NDK_LATEST_HOME" ./tools/build_android_deps.sh android_deps
+      - name: Build the Linux half
+        env:
+          DRIVER: ${{ inputs.driver }}
+          SRC_REPO: ${{ inputs.src_repo }}
+          SRC_REF: ${{ inputs.src_ref }}
+          SRC_KIND: ${{ inputs.kind }}
+          PROFILE: ${{ inputs.profile }}
+          PANFROST_KMDS: ${{ inputs.kmds }}
+          ZIP_NAME: ${{ inputs.id }}-Linux.zip
+          META_NAME: ${{ inputs.id }} (Linux, glibc)
+        run: ./build_linux_driver.sh
+      # Patch-series projects publish no Android build, so build the Android half here with the
+      # project's own script, from the same pin + patches and the host tools built above.
+      - name: Build the Android half
+        if: inputs.kind == 'patchset' && inputs.build_android
+        run: |
+          set -eu
+          # The project's Android build copies X11 headers (runtime-dlopen'd) from the host.
+          sudo apt-get install -y libxcb1-dev libx11-dev libx11-xcb-dev libxshmfence-dev \
+            libxcb-randr0-dev libxcb-dri3-dev libxcb-present-dev libxcb-shm0-dev libxcb-sync-dev libxcb-xfixes0-dev
+          a="$RUNNER_TEMP/android-src"
+          rm -rf "$a" && git clone -q "https://github.com/${{ inputs.src_repo }}.git" "$a"
+          git -C "$a" checkout -q "${{ inputs.src_ref }}"
+          (cd "$a" && ./scripts/fetch-mesa.sh "$a/work" && ./scripts/apply-patches.sh --profile "${{ inputs.profile }}" --mesa "$a/work/mesa")
+          python3 patches/panvk_csf_provoking_vertex_u64.py "$a/work/mesa"
+          # Link against our full libdrm (SONAME libdrm_full.so) instead of the project's libdrm.so
+          # shim, so the vendor libdrm.so cannot shadow it at load time.
+          cp android_deps/libdrm_full.so "$a/shims/libdrm.so"
+          # Same recipe as the project's own CI (build-g615-panvk.yml): its android.toml cross file
+          # and its prebuilt Android shims (libdrm, xcb) under shims/.
+          export ANDROID_NDK_HOME="$ANDROID_NDK_LATEST_HOME" MESON_WORKING_DIR="$a"
+          CLANG_DIR="$(ls -d $ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/*/lib/linux/aarch64 2>/dev/null | tail -n1)"
+          export CLANG_LIB_DIR="$CLANG_DIR"
+          sudo apt-get install -y gettext-base
+          envsubst < "$a/android.toml" > "$a/android-cross.txt"
+          ht="$PWD/linux_workdir/host/bin"
+          ln -sf "$ht/mesa_clc" "$ht/mesa-clc"; ln -sf "$ht/vtn_bindgen2" "$ht/vtn-bindgen2"
+          export PATH="$ht:$PATH"
+          (cd "$a" && PKG_CONFIG_LIBDIR="$a/shims" meson setup build-android work/mesa --cross-file android-cross.txt \
+            -Dbuildtype=release -Dplatforms=android -Dandroid-stub=true -Dandroid-strict=false \
+            -Dandroid-libbacktrace=disabled -Dplatform-sdk-version=30 -Dglx=disabled -Dgbm=disabled \
+            -Degl=disabled -Dopengl=false -Dgles1=disabled -Dgles2=disabled -Dglvnd=disabled \
+            -Dvalgrind=disabled -Dgallium-drivers= -Dshared-glapi=disabled -Dzstd=disabled \
+            -Dmesa-clc=system -Dprecomp-compiler=system -Dvulkan-drivers=panfrost -Dllvm=disabled \
+            -Dpanfrost-kmds=kbase \
+            || { tail -n 60 build-android/meson-logs/meson-log.txt; exit 1; })
+          ninja -C "$a/build-android" src/panfrost/vulkan/libvulkan_panfrost.so
+          mkdir -p "$a/dist" && cp "$a/build-android/src/panfrost/vulkan/libvulkan_panfrost.so" "$a/dist/"
+          ANDROID_NDK_ROOT="$ANDROID_NDK_HOME"
+          so="$a/dist/libvulkan_panfrost.so"
+          "$ANDROID_NDK_ROOT"/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip "$so"
+          "$ANDROID_NDK_ROOT"/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf -d "$so" | grep NEEDED
+          mkdir -p android_half && cp "$so" android_half/
+          cat > android_half/meta.json <<EOJ
+          {
+            "schemaVersion": 1,
+            "name": "${{ inputs.id }} (Android)",
+            "description": "PanVK on Arm kbase, profile ${{ inputs.profile }}, built from ${{ inputs.src_repo }}",
+            "author": "${{ inputs.src_repo }}",
+            "packageVersion": "$(git -C "$a" rev-parse --short HEAD)",
+            "vendor": "Mesa",
+            "driverVersion": "Mesa $(cat "$a/work/mesa/VERSION")",
+            "minApi": 29,
+            "libraryName": "libvulkan_panfrost.so"
+          }
+          EOJ
+          (cd android_half && zip -9 "../${{ inputs.id }}-Android-built.zip" libvulkan_panfrost.so meta.json)
+      - name: Package the pair and notes
+        run: python3 make_release.py "${{ inputs.id }}" "linux_workdir/${{ inputs.id }}-Linux.zip" out "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" "${{ inputs.id }}-Android-built.zip"
+      - name: Update this driver's release
+        run: |
+          tag="$(echo '${{ inputs.id }}' | tr '[:upper:]' '[:lower:]')"
+          title="${{ inputs.id }} for DroidDeck (test)"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release edit "$tag" --notes-file out/NOTES.md --title "$title"
+          else
+            gh release create "$tag" --prerelease --title "$title" --notes-file out/NOTES.md
+          fi
+          gh release upload "$tag" out/*.zip --clobber
+          gh release view "$tag" --json assets --jq '.assets[] | "\(.name) \(.size)"'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ inputs.id }}
+          path: |
+            out/
+            linux_workdir/src/build-linux/meson-logs/meson-log.txt
+            linux_workdir/src/build-host/meson-logs/meson-log.txt
+          if-no-files-found: ignore

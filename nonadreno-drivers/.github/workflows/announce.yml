@@ -1,0 +1,37 @@
+name: Announce on Discord
+
+# Posts a release to the DroidDeck "Crash on mali devices" thread as DroidDeck-Bot, in plain words.
+# For the test APK, leave message empty: the release's "New in this build" section is posted.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag (e.g. droiddeck-test-non-adreno-all, panvk-mali-kbase)
+        required: true
+      message:
+        description: Plain-words text to post instead of the release's "New in this build" section
+        required: false
+        default: ""
+      mention:
+        description: Discord user ids to @ (comma-separated), pinged in the message text
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Post
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_MALI_THREAD_WEBHOOK }}
+          DISCORD_THREAD_ID: "1554439238815322112"
+          MESSAGE: ${{ inputs.message }}
+          MENTIONS: ${{ inputs.mention }}
+        run: |
+          printf '%s' "$MESSAGE" > msg.txt
+          python3 tools/announce.py "${{ inputs.tag }}" msg.txt

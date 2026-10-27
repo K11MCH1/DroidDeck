@@ -1,0 +1,191 @@
+[
+  {
+    "id": "RADV-Xclipse",
+    "title": "RADV Xclipse",
+    "gpus": "Samsung Xclipse 920 / 530 / 940. Chips: Exynos 2200, Exynos 1480, Exynos 2400 / 2400e (940 is experimental). Phones: Galaxy S22 / S22+ / S22 Ultra (Exynos models), Galaxy A55, Galaxy S24 / S24+ (Exynos models), Galaxy S24 FE. Not the Snapdragon versions of these phones, and not Exynos 1580 (Xclipse 540).",
+    "author": "JimVulkan",
+    "source": "https://github.com/JimVulkan/radv-xclipse",
+    "android": {
+      "repo": "JimVulkan/radv-xclipse",
+      "asset": "radv-xclipse-.*\\.zip$",
+      "tag": "v1.6.0-RC"
+    },
+    "build": {
+      "driver": "radv",
+      "src_repo": "JimVulkan/radv-xclipse",
+      "src_ref": "05b3092fcc9040852a8bff20d19dd8bbed31a1c7"
+    },
+    "tag": "radv-xclipse",
+    "note": "The default RADV for Xclipse. Built from JimVulkan's v1.6.0-RC source (05b3092), paired with the author's v1.6.0-RC Android release. Kept as the default because testers measured the final v1.6.0 about 30% slower in FauxVkTest; newer releases (now v1.8.0) are the separate manual option RADV-Xclipse-upstream."
+  },
+  {
+    "id": "RADV-Xclipse-upstream",
+    "tag": "radv-xclipse-upstream",
+    "title": "RADV-Xclipse (upstream v1.8.0)",
+    "gpus": "Samsung Xclipse 920 / 530 / 940. Chips: Exynos 2200, Exynos 1480, Exynos 2400 / 2400e (940 is experimental). Phones: Galaxy S22 / S22+ / S22 Ultra (Exynos models), Galaxy A55, Galaxy S24 / S24+ (Exynos models), Galaxy S24 FE. Not the Snapdragon versions of these phones, and not Exynos 1580 (Xclipse 540).",
+    "author": "JimVulkan",
+    "source": "https://github.com/JimVulkan/radv-xclipse",
+    "android": {
+      "repo": "JimVulkan/radv-xclipse",
+      "asset": "radv-xclipse-27\\..*\\.zip$",
+      "tag": "v1.8.0"
+    },
+    "build": {
+      "driver": "radv",
+      "src_repo": "JimVulkan/radv-xclipse",
+      "src_ref": "v1.8.0"
+    },
+    "note": "Manual option, not the default (the default is RADV-Xclipse, built from v1.6.0-RC, which testers measured faster). This is JimVulkan's v1.8.0 on Mesa 27.0.0-devel, both halves: everything in v1.6.0 (tessellation and transform feedback fixes, BC terrain-texture fix, less memory for BC7 and signed BC4/BC5), BC6H at half the memory (v1.7.0), and in v1.8.0 BC6H/BC7 loading about twice as fast, the BC6H signed/unsigned fix (wrong lighting in DXVK games) and unsigned BC4 at a third of the memory. Less texture memory matters on 8 GB phones, where heavy games were killed by Android for memory. Ray tracing is untested upstream. In the Linux half the author's Android properties do not exist; use RADV_XCLIPSE_BC7SRGB_RGBA8=1 (exact sRGB BC7) and RADV_XCLIPSE_BCSNORM_EXACT=1 (exact signed BC4/BC5) instead."
+  },
+  {
+    "id": "PanVK-Mali-kbase",
+    "tag": "panvk-mali-kbase",
+    "title": "PanVK-kbase (zenithblue, all newer Mali: v9 to v13)",
+    "gpus": "One driver for Mali v9 to v13 on Arm's kbase driver: G57 / G68 / G77 / G78 (v9), G610 / G710 (v10), G615 / G715 (v11), G720 (v12), G925 / G725 (v13). Author-tested (PanProbe 38/38): Lenovo Tab TB336FU (G57), Poco X6 Pro (G615), Galaxy Tab S10 Ultra (G720), Motorola Edge 40 Neo (G610), Pixel 7 / 7a (G710), Pixel 8 / 9 (G715); Galaxy Tab S11 Ultra (G925) passed on the previous beta. Chips include Helio G99, Dimensity 7300 / 8300 / 9000 / 9300 / 9400, Tensor G2 / G3 / G4. Android 15 or newer (the author's Android build needs API 35).",
+    "author": "zenithblue-oss",
+    "source": "https://github.com/zenithblue-oss/panvk-kbase-android",
+    "android": {
+      "repo": "zenithblue-oss/panvk-kbase-android",
+      "asset": "PanVK-Kbase-Android-.*[0-9a-f]\\.adpkg\\.zip$",
+      "tag": "panvk-kbase-v0.1.0-rc4-lowmem"
+    },
+    "build": {
+      "driver": "panvk",
+      "src_repo": "zenithblue-oss/panvk-kbase-android",
+      "src_ref": "9be6dd63442aaefa95378b4dd8354a1b8c04c40d",
+      "kind": "patchset",
+      "profile": "g615-v11-csf",
+      "kmds": "kbase",
+      "build_android": false
+    },
+    "note": "The Linux half is built here from zenithblue's source at 9be6dd6 (2026-10-23, the RC5 work through csf-v11/222; the next patch, 226, needs a pool field only the JM series defines, so it does not build for this profile yet): Mali-G1-Ultra (v14) memory import fix, smaller tiler heaps and command pools (less memory), X11 surface and damage fixes, vkd3d fork-hang fix, plus this repo's three fixes (sync-file fd leak, provoking-vertex, DRM node). The Android half is the author's official RC4 lowmem (lowmem BC on by default; PANVK_BC_MODE turns it off). RC4's own source was not published, so the halves come from different builds of the same project."
+  },
+  {
+    "id": "PanVK-Mali-JM",
+    "title": "FristOneRR PanVK (older Mali)",
+    "gpus": "Older Mali (Job Manager): G52, G57, G68, G76, G77, G78. Chips: Helio G85 / G88 / G95 / G99 / G100, Dimensity 700 / 810 / 6020 / 6080 / 6100+ / 1080 / 1200 / 1300 / 8050, Kompanio 1300T, Unisoc T820, Exynos 1280 / 1380. Phones the author lists as working: Poco M6 Pro 4G, Galaxy A15 / A15 5G / A17 4G, Realme 10 4G, Infinix Note 30 5G / Note 50 Pro, Tecno Camon 20 Pro 5G, Redmi Note 12 Pro 5G, Redmi Note 10S, Galaxy Tab S9 FE+.",
+    "author": "FristOneRR (credits: Noysz, mexicanbr0auth, LukeValen, BossDrk)",
+    "source": "https://github.com/FristOneRR-Admin/FristOneRR-Panvk-Source",
+    "android": {
+      "repo": "FristOneRR/FristOneRR-Panvk-Driver",
+      "asset": "Panvk-Mali-G57-.*\\.zip$",
+      "tag": "v3.0"
+    },
+    "build": {
+      "driver": "panvk",
+      "src_repo": "FristOneRR-Admin/FristOneRR-Panvk-Source",
+      "src_ref": "master"
+    },
+    "note": "The Linux half is built from the newest public source (beta 1.2.0); the Android half is the official v3.0 release (D3D12 with Wrapper 3.0, black triangles fixed, G52 fixes, BC4-BC7 in the driver), pinned.",
+    "tag": "panvk-mali-jm"
+  },
+  {
+    "id": "PanVK-Mali-G720",
+    "title": "PanVK G720 (wonderkast02)",
+    "gpus": "Mali-G720 (CSF). Chips: Dimensity 9300 / 9300+, Dimensity 8400. Phones/tablets: Vivo X100 / X100 Pro, Oppo Find X7, Galaxy Tab S10+ / S10 Ultra, Poco X7 Pro, Redmi Turbo 4.",
+    "author": "wonderkast02",
+    "source": "https://github.com/wonderkast02/panvk-g720-kbase-csf",
+    "android": {
+      "repo": "wonderkast02/panvk-g720-kbase-csf",
+      "asset": "PanVK-G720-.*[0-9]\\.zip$"
+    },
+    "build": {
+      "driver": "panvk",
+      "src_repo": "wonderkast02/panvk-g720-kbase-csf",
+      "src_ref": "g720-development",
+      "kmds": "kbase"
+    },
+    "note": "The Linux half is built from the g720-development branch; the Android half is the official 0.1.0-beta.2 release.",
+    "tag": "panvk-mali-g720"
+  },
+  {
+    "id": "PanVK-Mali-G615",
+    "title": "PanVK kbase Android (G615)",
+    "gpus": "Mali-G615 (CSF). Chips: Dimensity 7300 (the author's test phone is an Oppo CPH2763), Dimensity 8300. Phones: Poco X6 Pro, Redmi K70E and other Dimensity 7300 / 8300 phones.",
+    "author": "GunaCharanTeja (fork of zenithblue-oss/panvk-kbase-android)",
+    "source": "https://github.com/GunaCharanTeja/panvk-kbase-android",
+    "android": null,
+    "build": {
+      "driver": "panvk",
+      "src_repo": "GunaCharanTeja/panvk-kbase-android",
+      "src_ref": "g615-1.1.5-FC",
+      "kind": "patchset",
+      "profile": "g615-v11-csf",
+      "kmds": "kbase"
+    },
+    "note": "Built from the author's 1.1.5-FC tag: 1.1.4-FC (RDR1 GPU-fault fixes, fewer GPU queue stalls, 8 MiB tiler heap chunks) plus BC textures transcoded at their native size (BC1-3 to ETC2, BC4/BC5 to EAC: about half the texture memory) and faster BC6H/BC7 conversion. PANVK_BC_ETC=0 / PANVK_BC_EAC=0 bring back 1.1.4's texture paths. The author's own Android release is for adrenotools/X11 apps; the Android half here is built from the same tag and patches as the Linux half.",
+    "tag": "panvk-mali-g615"
+  },
+  {
+    "id": "PanVK-Mali-G710",
+    "tag": "panvk-mali-g710",
+    "title": "PanVK kbase Android (G610 / G710, experimental)",
+    "gpus": "Mali-G610 / G710 (CSF, arch v10). Chips: Google Tensor G2 and Dimensity 9000 / 9000+ (Mali-G710), Dimensity 7200 / 8000 / 8100 / 8200 (Mali-G610). Devices: Pixel 7 / 7 Pro / 7a, Pixel Fold, Pixel Tablet, OnePlus Nord 3, Nothing Phone (2a), Redmi Note 13 Pro+.",
+    "author": "GunaCharanTeja (fork of zenithblue-oss/panvk-kbase-android)",
+    "source": "https://github.com/GunaCharanTeja/panvk-kbase-android",
+    "android": null,
+    "build": {
+      "driver": "panvk",
+      "src_repo": "GunaCharanTeja/panvk-kbase-android",
+      "src_ref": "main",
+      "kind": "patchset",
+      "profile": "g610-v10-csf",
+      "kmds": "kbase"
+    },
+    "note": "Built from the project's g610-v10-csf profile, which its author marks as planned and not yet validated. The G710 is the same GPU generation. No official Android release exists; the Android half will be built here."
+  },
+  {
+    "id": "PanVK-faux123-RP4Pro",
+    "tag": "panvk-faux123-rp4pro",
+    "title": "PanVK faux123 (Retroid Pocket 4 Pro)",
+    "gpus": "Retroid Pocket 4 Pro only (Dimensity 1100, Mali-G77 MC9). Tuned and tested by the author on that handheld.",
+    "author": "faux123",
+    "source": "https://github.com/faux123/panvk-faux123-driver-rp4pro",
+    "android": {
+      "repo": "faux123/panvk-faux123-driver-rp4pro",
+      "asset": "panvk_faux123_.*\\.adpkg\\.zip$",
+      "tag": "v1.0.0"
+    },
+    "build": {
+      "kind": "repack",
+      "linux_from": "panvk-mali-kbase"
+    },
+    "note": "Mixed pair. The Android half is faux123's own v1.0.0 build, unchanged: one universal driver for all his devices, built on zenithblue's RC4 plus 49 of his patches (faster in barrier-heavy scenes). His patches are in a private repo, so it cannot be rebuilt for Linux. The Linux half is our zenithblue PanVK-kbase build (same project, newer source)."
+  },
+  {
+    "id": "PanVK-faux123-Ace",
+    "tag": "panvk-faux123-ace",
+    "title": "PanVK faux123 (GameForce Ace)",
+    "gpus": "GameForce Ace only (Mali-G610). Tuned and tested by the author on that handheld.",
+    "author": "faux123",
+    "source": "https://github.com/faux123/panvk-faux123-driver-ace",
+    "android": {
+      "repo": "faux123/panvk-faux123-driver-ace",
+      "asset": "panvk_faux123_.*\\.adpkg\\.zip$",
+      "tag": "v1.0.0"
+    },
+    "build": {
+      "kind": "repack",
+      "linux_from": "panvk-mali-kbase"
+    },
+    "note": "Mixed pair. The Android half is faux123's own v1.0.0 build, unchanged: one universal driver for all his devices, built on zenithblue's RC4 plus 49 of his patches (faster in barrier-heavy scenes). His patches are in a private repo, so it cannot be rebuilt for Linux. The Linux half is our zenithblue PanVK-kbase build (same project, newer source)."
+  },
+  {
+    "id": "PanVK-faux123-RG556",
+    "tag": "panvk-faux123-rg556",
+    "title": "PanVK faux123 (Anbernic RG556)",
+    "gpus": "Anbernic RG556 only (Unisoc T820, Mali-G57). Tuned and tested by the author on that handheld.",
+    "author": "faux123",
+    "source": "https://github.com/faux123/panvk-faux123-driver-rg556",
+    "android": {
+      "repo": "faux123/panvk-faux123-driver-rg556",
+      "asset": "panvk_faux123_.*\\.adpkg\\.zip$",
+      "tag": "v1.0.0"
+    },
+    "build": {
+      "kind": "repack",
+      "linux_from": "panvk-mali-kbase"
+    },
+    "note": "Mixed pair. The Android half is faux123's own v1.0.0 build, unchanged: one universal driver for all his devices, built on zenithblue's RC4 plus 49 of his patches (faster in barrier-heavy scenes). His patches are in a private repo, so it cannot be rebuilt for Linux. The Linux half is our zenithblue PanVK-kbase build (same project, newer source)."
+  }
+]

@@ -1,0 +1,23 @@
+name: PanVK-Mali-G720
+on:
+  workflow_dispatch:
+    inputs:
+      src_ref:
+        description: Source branch, tag or commit to build
+        default: g720-development
+  push:
+    branches: [main]
+    paths: ['.github/workflows/panvk-mali-g720.yml']
+permissions:
+  contents: write
+jobs:
+  driver:
+    uses: ./.github/workflows/_driver.yml
+    with:
+      id: PanVK-Mali-G720
+      driver: panvk
+      src_repo: wonderkast02/panvk-g720-kbase-csf
+      src_ref: ${{ inputs.src_ref || 'g720-development' }}
+      kind: git
+      profile: ''
+      kmds: 'kbase'

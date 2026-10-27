@@ -1,0 +1,25 @@
+# Source pinned to the commit of GunaCharanTeja tag g615-1.1.4-FC; the g610-v10-csf profile sources
+# are the same as at 45071e8 (all newer work is in the csf-v11 series this profile does not apply).
+name: PanVK-Mali-G710
+on:
+  workflow_dispatch:
+    inputs:
+      src_ref:
+        description: Source branch, tag or commit to build
+        default: aa01eb0cd2d5e622ffbaa3a1e097857fe8ed8719
+  push:
+    branches: [main]
+    paths: ['.github/workflows/panvk-mali-g710.yml']
+permissions:
+  contents: write
+jobs:
+  driver:
+    uses: ./.github/workflows/_driver.yml
+    with:
+      id: PanVK-Mali-G710
+      driver: panvk
+      src_repo: GunaCharanTeja/panvk-kbase-android
+      src_ref: ${{ inputs.src_ref || 'aa01eb0cd2d5e622ffbaa3a1e097857fe8ed8719' }}
+      kind: patchset
+      profile: 'g610-v10-csf'
+      kmds: 'kbase'
