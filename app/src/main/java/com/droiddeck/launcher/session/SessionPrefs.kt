@@ -286,18 +286,18 @@ object SessionPrefs {
         prefs(context).edit().putInt("hudOpacity", percent.coerceIn(HUD_OPACITY_RANGE)).apply()
     }
 
-    fun fusionHudConfig(context: Context): String? = prefs(context).getString("fusionHud", null)
+    fun droidDeckHudConfig(context: Context): String? = prefs(context).getString("__KEEP_droidDeckHud__", null)
 
-    fun setFusionHudConfig(context: Context, config: String) {
-        prefs(context).edit().putString("fusionHud", config).apply()
+    fun setDroidDeckHudConfig(context: Context, config: String) {
+        prefs(context).edit().putString("__KEEP_droidDeckHud__", config).apply()
     }
 
-    fun fusionHudPosition(context: Context): Pair<Float, Float>? =
-        prefs(context).getString("fusionHudPos", null)?.split(',')?.mapNotNull { it.toFloatOrNull() }
+    fun droidDeckHudPosition(context: Context): Pair<Float, Float>? =
+        prefs(context).getString("__KEEP_droidDeckHudPos__", null)?.split(',')?.mapNotNull { it.toFloatOrNull() }
             ?.takeIf { it.size == 2 }?.let { it[0] to it[1] }
 
-    fun setFusionHudPosition(context: Context, x: Float, y: Float) {
-        prefs(context).edit().putString("fusionHudPos", "$x,$y").apply()
+    fun setDroidDeckHudPosition(context: Context, x: Float, y: Float) {
+        prefs(context).edit().putString("__KEEP_droidDeckHudPos__", "$x,$y").apply()
     }
 
     const val HUD_COLOR_MINT = "mint"
@@ -973,6 +973,19 @@ object SessionPrefs {
     fun setAddedGameLaunch(context: Context, folderPath: String, options: String) {
         prefs(context).edit().putString("addedLaunch:$folderPath", options.trim()).apply()
     }
+
+    /** Launch options set here for a Steam game, which replace the ones in Steam; null when none were set here. */
+    fun steamGameLaunch(context: Context, appId: Int): String? = prefs(context).getString("steamLaunch:$appId", null)
+
+    fun setSteamGameLaunch(context: Context, appId: Int, options: String) {
+        prefs(context).edit().putString("steamLaunch:$appId", options.trim()).apply()
+    }
+
+    /** Every Steam game with launch options set here, by app ID. */
+    fun steamGameLaunches(context: Context): Map<Int, String> = prefs(context).all.mapNotNull { (key, value) ->
+        val appId = key.takeIf { it.startsWith("steamLaunch:") }?.substringAfter(':')?.toIntOrNull() ?: return@mapNotNull null
+        (value as? String)?.let { appId to it }
+    }.toMap()
 
     fun addedGameAdopted(context: Context, folderPath: String, field: String): String? =
         prefs(context).getString("addedAdopted:$field:$folderPath", null)
