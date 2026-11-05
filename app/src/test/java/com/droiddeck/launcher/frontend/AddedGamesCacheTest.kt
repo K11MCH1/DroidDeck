@@ -78,7 +78,7 @@ class AddedGamesCacheTest {
         val (folder, exe) = game()
         val (other, _) = game("Other")
         val now = System.currentTimeMillis()
-        val good = JSONObject().put("modified", folder.lastModified()).put("at", now)
+        val good = JSONObject().put("modified", folder.lastModified()).put("declared", AddedGames.declarationStamp(folder)).put("at", now)
             .put("exes", JSONArray(listOf(exe.path))).put("scores", JSONArray(listOf(72)))
         val bad = JSONObject().put("modified", other.lastModified()).put("at", now)
             .put("exes", JSONArray(listOf("bin/Other.exe"))).put("scores", JSONArray(listOf("bad")))
@@ -126,6 +126,37 @@ class AddedGamesCacheTest {
         AddedGames.scan(context)
         assertEquals(listOf(kept), AddedGames.rank(folder, reuse = true).exes)
         assertEquals(walked, AddedGames.candidates(folder).first())
+    }
+
+    @Test fun whatThisProcessAlreadyFoundReachesACacheOpenedLater() {
+        val (folder, exe) = game("Early Game")
+        val files = tmp.newFolder("files")
+        val context = object : android.content.ContextWrapper(app) {
+            override fun getFilesDir() = files
+        }
+        AddedGames.rank(folder)
+        AddedGames.identifiedName(folder, exe)
+        AddedGames.scan(context)
+        AddedExes.put(context, AddedExes.Entry(folder.path, exe.path, picked = false))
+        AddedGames.identifiedName(folder, exe)
+        AddedGames.scan(context)
+        val kept = AddedGamesCache(File(files, AddedGamesCache.FILE))
+        assertEquals(listOf(exe.path), kept.rank(folder)?.exes?.map { it.path })
+        assertNotNull(kept.name("${exe.path}|${exe.length()}|${exe.lastModified()}|${folder.lastModified()}"))
+    }
+
+    @Test fun aRewrittenDeclarationIsWalkedAgain() {
+        val (folder, exe) = game("Store Game")
+        val next = File(folder, "bin/Next.exe").apply { writeText("next") }
+        val config = File(folder, "MicrosoftGame.config").apply { writeText("<Executable Name=\"bin\\Store Game.exe\"/>") }
+        val modified = folder.lastModified()
+        assertEquals(exe, AddedGames.rank(folder).exes.first())
+        AddedGamesCache(store()).apply { keepRank(folder, AddedGames.rank(folder)); save() }
+        config.writeText("<Executable Name=\"bin\\Next.exe\"/>")
+        config.setLastModified(config.lastModified() + 60_000)
+        folder.setLastModified(modified)
+        assertEquals(next, AddedGames.rank(folder).exes.first())
+        assertNull(AddedGamesCache(store()).rank(folder))
     }
 
     @Test fun aScanKeepsEachGamesRankingForTheNextLaunch() {

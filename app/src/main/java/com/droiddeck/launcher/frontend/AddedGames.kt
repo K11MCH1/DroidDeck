@@ -100,9 +100,12 @@ object AddedGames {
     fun candidates(folder: File): List<File> = rank(folder).exes
 
     fun rank(folder: File, reuse: Boolean = false): GameExePicker.Ranking {
-        val key = "${folder.path}|${folder.lastModified()}"
+        val key = "${folder.path}|${folder.lastModified()}|${declarationStamp(folder)}"
         val now = System.currentTimeMillis()
-        ranked[key]?.takeIf { now - it.first < RANK_FRESH_MS }?.let { return it.second }
+        ranked[key]?.takeIf { now - it.first < RANK_FRESH_MS }?.let { hit ->
+            kept?.let { if (it.rank(folder) == null) it.keepRank(folder, hit.second) }
+            return hit.second
+        }
         if (reuse) kept?.rank(folder)?.let { return it }
         val guessed = GameExePicker.rank(folder) { !skipExe(it.name) }
         val declared = declaredExes(folder)
@@ -127,7 +130,10 @@ object AddedGames {
 
     internal fun identifiedName(folder: File, exe: File): String? {
         val key = "${exe.path}|${exe.length()}|${exe.lastModified()}|${folder.lastModified()}"
-        identified[key]?.let { return it.ifEmpty { null } }
+        identified[key]?.let { hit ->
+            kept?.let { if (it.name(key) == null) it.keepName(key, hit) }
+            return hit.ifEmpty { null }
+        }
         kept?.name(key)?.let { identified[key] = it; return it.ifEmpty { null } }
         val id = runCatching { GameIdentifier.identify(exe) }.getOrNull()
         val found = id?.name?.takeIf {
@@ -166,6 +172,9 @@ object AddedGames {
             .distinctBy { it.path }
             .toList()
     }
+
+    internal fun declarationStamp(folder: File): String =
+        DECLARED.joinToString(",") { File(folder, it.first).lastModified().toString() }
 
     private val DECLARED = listOf(
         "MicrosoftGame.config" to Regex("<Executable\\b[^>]*?\\bName\\s*=\\s*\"([^\"]+)\"", RegexOption.IGNORE_CASE),
